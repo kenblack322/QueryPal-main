@@ -1,0 +1,35 @@
+/* .blog__filter-item {}
+
+.blog__filter-item.is-active {} */
+
+.blog-radio__background {
+  transition: all 0.3s ease;
+  opacity: 1;
+}
+
+.blog-radio__hover {
+  transition: all 0.3s ease;
+  opacity: 0;
+}
+
+.blog_radio-button:checked ~ .blog-radio__background {
+  opacity: 0;
+}
+
+.blog_radio-button:checked ~ .blog-radio__hover {
+  opacity: 1;
+}
+
+.blog_radio-field.is-active .blog-radio__background {
+  opacity: 0;
+}
+
+.blog_radio-field.is-active .blog-radio__hover {
+  opacity: 1;
+}
+
+/* @media only screen and (min-width: 992px) {
+  .blog_item:nth-child(4) {
+    grid-column: span 3;
+  }
+} */

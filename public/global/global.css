@@ -1,0 +1,47 @@
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -o-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+
+  /* Base color*/
+  --color-transparent: transparent;
+  --color-lilac: #b35dff;
+  --color-white: #FFFFFF;
+  --color-black: #27162b;
+  --color-rose: #ea98ff;
+
+}
+
+/*************************** Blog Cirle Pluse *********************************/
+.circle-pluse-43 {
+  color: #27162b;
+  box-shadow: -15.69px 5px 15.9px 0px #dbc7ed24 inset;
+  box-shadow: 15.69px -15.69px 15.69px 0px #d739ff24 inset;
+  backdrop-filter: blur(31.382564544677734px);
+}
+
+.circle-pluse-43.is-hovered {
+  color: #f8f9fa;
+  background-color: #b35dff;
+}
+
+/******************************** Header **************************************/
+
+@media screen and (min-width: 991px) {
+  .header__brand:hover {
+    color: var(--color-lilac);
+  }
+
+  .dropdown-toggle:hover {
+    color: var(--color-rose);
+  }
+
+  .navbar-link:hover {
+    color: var(--color-rose);
+  }
+
+  .navbar-link.is-dropdown:hover {
+    color: var(--color-rose);
+  }
+}

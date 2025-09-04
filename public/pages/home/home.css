@@ -1,0 +1,90 @@
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - 1rem));
+  }
+}
+.marquee-content {
+  animation: scroll 50s linear infinite;
+}
+
+/***************** Hover Circle Element ********************/
+@media screen and (min-width: 991px) {
+  .features-cirle__cursor {
+    pointer-events: none;
+    transition: color 0.5s ease;
+  }
+
+  .features-cirle:hover .features-cirle__cursor {
+    color: #ea98ff;
+  }
+}
+
+/***************** Polygonal Button ********************/
+.button-polygonal {
+  cursor: pointer;
+}
+
+.button-polygonal__back {
+  opacity: 1;
+  transition: all 0.5s ease;
+}
+
+.button-polygonal__hover {
+  opacity: 0;
+  transition: all 0.5s ease;
+}
+
+@media screen and (min-width: 991px) {
+  .button-polygonal:hover {
+    color: #27162b;
+  }
+
+  .button-polygonal:hover .button-polygonal__hover {
+    opacity: 1;
+  }
+
+  .button-polygonal:hover .button-polygonal__back {
+    opacity: 0;
+  }
+}
+
+/******************************** Home Header **************************************/
+.header__brand {
+  cursor: default !important;
+  pointer-events: none !important;
+  color: var(--color-white) !important;
+}
+
+/* Paddings */
+@media screen and (max-width: 1950px) {
+  .header-home .container {
+    max-width: 81.25rem !important;
+  }
+}
+
+@media screen and (min-width: 991px) {
+  .dropdown-toggle {
+    color: var(--color-black);
+  }
+
+  .navbar-link {
+    color: var(--color-white);
+  }
+
+  .navbar-link.is-dropdown {
+    color: var(--color-black);
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .header__brand {
+    color: var(--color-black);
+  }
+
+  .menu-button {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}

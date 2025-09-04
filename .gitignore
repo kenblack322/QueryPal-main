@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Node.js
+node_modules/
+npm-debug.log
+
+# Vercel
+.vercel
+
+# Env files
+.env
+.env.local
+.env.development
+.env.production
+
+# Webflow exports (если вдруг качаешь)
+*.webflow.zip
+
+# Demo files
+demo
+demo/demo.css
+fonts/
+assets/
