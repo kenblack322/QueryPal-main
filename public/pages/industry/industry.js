@@ -17,19 +17,20 @@ function injectNoSwiperCSSOnce() {
 
 function removeSwiperClasses(container) {
   if (!container) return;
-  container.classList.remove('swiper-container');
+  container.classList.remove('swiper-container', 'swiper');
   const wrapper = container.querySelector('.swiper-wrapper');
+  const slides = wrapper ? wrapper.querySelectorAll(':scope > .swiper-slide') : container.querySelectorAll(':scope > .swiper-slide');
   if (wrapper) wrapper.classList.remove('swiper-wrapper');
-  const slides = container.querySelectorAll('.swiper-slide');
   slides.forEach(slide => slide.classList.remove('swiper-slide'));
 }
 
 function addSwiperClasses(container) {
   if (!container) return;
-  container.classList.add('swiper-container');
-  const wrapper = container.querySelector('.swiper-wrapper');
+  container.classList.add('swiper-container', 'swiper');
+  let wrapper = container.querySelector('.swiper-wrapper');
+  if (!wrapper) wrapper = container.firstElementChild;
   if (wrapper) wrapper.classList.add('swiper-wrapper');
-  const slides = container.querySelectorAll('> *');
+  const slides = wrapper ? wrapper.querySelectorAll(':scope > *') : container.querySelectorAll(':scope > *');
   slides.forEach(slide => slide.classList.add('swiper-slide'));
 }
 
