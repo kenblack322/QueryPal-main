@@ -7,9 +7,8 @@
     new Swiper('#basic-swiper', {
       slidesPerView: 1,
       slidesPerGroup: 1,
-      grabCursor: true,
       a11y: false,
-      allowTouchMove: true,
+      allowTouchMove: false,
       centeredSlides: true,
       centeredSlidesBounds: true,
       loop: true,
@@ -22,10 +21,9 @@
     new Swiper('#basic-swiper-second', {
       slidesPerView: 1,
       slidesPerGroup: 1,
-      grabCursor: true,
       a11y: false,
       spaceBetween: 10,
-      allowTouchMove: true,
+      allowTouchMove: false,
       centeredSlides: true,
       centeredSlidesBounds: true,
       loop: true,
