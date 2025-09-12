@@ -1,5 +1,32 @@
 'use strict';
 
+function injectNoSwiperCSSOnce() {
+  if (window.__noSwiperCSSInjected) return;
+  window.__noSwiperCSSInjected = true;
+  var css = `
+@media (min-width: 480px){
+  /* Контейнеры: отключаем ограничения Swiper */
+  #basic-swiper,
+  #basic-swiper-second{ height:auto !important; overflow:visible !important; width:auto !important; }
+
+  /* Обёртка: убираем трансформации и фикс-ширины */
+  #basic-swiper .swiper-wrapper,
+  #basic-swiper-second .swiper-wrapper{ transform:none !important; width:auto !important; }
+
+  /* Слайды: пусть ведут себя как обычные блоки */
+  #basic-swiper .swiper-slide,
+  #basic-swiper-second .swiper-slide{ width:auto !important; }
+
+  /* Кнопки навигации прячем на >479px */
+  #right-button,#left-button,#right-button-second,#left-button-second{ display:none !important; }
+}
+`;
+  var style = document.createElement('style');
+  style.type = 'text/css';
+  style.appendChild(document.createTextNode(css));
+  document.head.appendChild(style);
+}
+
 (function () {
   let swiper1 = null;
   let swiper2 = null;
@@ -57,6 +84,7 @@
   }
 
   function bootstrap() {
+    injectNoSwiperCSSOnce();
     // Ждём DOM и (по возможности) глобальный Swiper
     const start = () => {
       if (!mq.matches) {
