@@ -5,18 +5,6 @@ function injectNoSwiperCSSOnce() {
   window.__noSwiperCSSInjected = true;
   var css = `
 @media (min-width: 480px){
-  /* Контейнеры: отключаем ограничения Swiper */
-  #basic-swiper,
-  #basic-swiper-second{ height:auto !important; overflow:visible !important; width:auto !important; }
-
-  /* Обёртка: убираем трансформации и фикс-ширины */
-  #basic-swiper .swiper-wrapper,
-  #basic-swiper-second .swiper-wrapper{ transform:none !important; width:auto !important; }
-
-  /* Слайды: пусть ведут себя как обычные блоки */
-  #basic-swiper .swiper-slide,
-  #basic-swiper-second .swiper-slide{ width:auto !important; }
-
   /* Кнопки навигации прячем на >479px */
   #right-button,#left-button,#right-button-second,#left-button-second{ display:none !important; }
 }
@@ -25,6 +13,24 @@ function injectNoSwiperCSSOnce() {
   style.type = 'text/css';
   style.appendChild(document.createTextNode(css));
   document.head.appendChild(style);
+}
+
+function removeSwiperClasses(container) {
+  if (!container) return;
+  container.classList.remove('swiper-container');
+  const wrapper = container.querySelector('.swiper-wrapper');
+  if (wrapper) wrapper.classList.remove('swiper-wrapper');
+  const slides = container.querySelectorAll('.swiper-slide');
+  slides.forEach(slide => slide.classList.remove('swiper-slide'));
+}
+
+function addSwiperClasses(container) {
+  if (!container) return;
+  container.classList.add('swiper-container');
+  const wrapper = container.querySelector('.swiper-wrapper');
+  if (wrapper) wrapper.classList.add('swiper-wrapper');
+  const slides = container.querySelectorAll('> *');
+  slides.forEach(slide => slide.classList.add('swiper-slide'));
 }
 
 (function () {
@@ -36,7 +42,11 @@ function injectNoSwiperCSSOnce() {
   function createSwipers() {
     if (typeof Swiper === 'undefined') return;
 
-    if (!swiper1 && document.querySelector('#basic-swiper')) {
+    const container1 = document.querySelector('#basic-swiper');
+    const container2 = document.querySelector('#basic-swiper-second');
+
+    if (!swiper1 && container1) {
+      addSwiperClasses(container1);
       swiper1 = new Swiper('#basic-swiper', {
         slidesPerView: 1,
         slidesPerGroup: 1,
@@ -49,7 +59,8 @@ function injectNoSwiperCSSOnce() {
       });
     }
 
-    if (!swiper2 && document.querySelector('#basic-swiper-second')) {
+    if (!swiper2 && container2) {
+      addSwiperClasses(container2);
       swiper2 = new Swiper('#basic-swiper-second', {
         slidesPerView: 1,
         slidesPerGroup: 1,
@@ -73,6 +84,12 @@ function injectNoSwiperCSSOnce() {
       swiper2.destroy(true, true);
       swiper2 = null;
     }
+
+    const container1 = document.querySelector('#basic-swiper');
+    const container2 = document.querySelector('#basic-swiper-second');
+
+    removeSwiperClasses(container1);
+    removeSwiperClasses(container2);
   }
 
   function syncWithMediaQuery() {
