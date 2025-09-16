@@ -7,39 +7,43 @@
 
 /* ===== Footer: only when NO clip-path is active =====
    Works when <html> or <body> has class "no-clip-footer" */
+
+
+/* 1) Disable clip-path on the background */
 .no-clip-footer .footer__background {
   clip-path: none !important;
   -webkit-clip-path: none !important;
 }
-
-.no-clip-footer .footer { margin: 0; }
-.no-clip-footer .padding-global { padding: 0; }
-
-/* Center inner sections ONLY on no-clip pages */
+.no-clip-footer .footer{
+	margin: 0;
+}
+.no-clip-footer .padding-global {
+	padding: 0;
+}
+/* 2) Center layout for main footer sections */
 .no-clip-footer .footer__up-wrapper,
 .no-clip-footer .footer__mid-wrapper,
 .no-clip-footer .footer__down-wrapper,
 .no-clip-footer .footer__right-wrapper {
-  display: flex;              /* enable flex */
-  flex-direction: column;     /* vertical stack */
-  justify-content: center;    /* vertical center */
-  align-items: center;        /* horizontal center */
-  text-align: center;         /* center text */
+  display: flex;                 /* enable flexbox */
+  justify-content: center;       /* center children vertically */
+  align-items: center;           /* center children horizontally */
+  text-align: center;            /* center text inside */
 }
 
-/* Spacing/width for the whole footer component (no-clip only) */
+/* 3) Add consistent spacing between footer sections */
 .no-clip-footer .footer__component {
-  gap: 3.125rem;
-  padding: 3.75rem 0.9375rem 0;
-  max-width: 90rem;
-  width: 100%;
-  margin: 0 auto;
+  gap: 3.125rem;                 /* spacing between up/mid/down wrappers */
+  padding: 3.75rem 0.9375rem 0;  /* top + horizontal padding */
+  max-width: 90rem;              /* limit width for large screens */
+  width: 100%;                   /* full width on smaller screens */
+  margin: 0 auto;                /* center the whole component */
 }
 
-/* Mobile tweaks */
+/* 4) Mobile adjustments (optional) */
 @media (max-width: 479px) {
   .no-clip-footer .footer__component {
-    gap: 2rem;
-    padding: 2rem 0.9375rem 0;
+    gap: 2rem;                   /* smaller gap on mobile */
+    padding: 2rem 0.9375rem 0;   /* reduce top padding */
   }
 }
