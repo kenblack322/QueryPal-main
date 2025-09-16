@@ -1,11 +1,45 @@
+/* ===== Marquee (your existing) ===== */
 @keyframes scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(calc(-100% - 1rem));
-  }
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-100% - 1rem)); }
 }
-.marquee-content {
-  animation: scroll 50s linear infinite;
+.marquee-content { animation: scroll 50s linear infinite; }
+
+/* ===== Footer: only when NO clip-path is active =====
+   Works when <html> or <body> has class "no-clip-footer" */
+.no-clip-footer .footer__background {
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+}
+
+.no-clip-footer .footer { margin: 0; }
+.no-clip-footer .padding-global { padding: 0; }
+
+/* Center inner sections ONLY on no-clip pages */
+.no-clip-footer .footer__up-wrapper,
+.no-clip-footer .footer__mid-wrapper,
+.no-clip-footer .footer__down-wrapper,
+.no-clip-footer .footer__right-wrapper {
+  display: flex;              /* enable flex */
+  flex-direction: column;     /* vertical stack */
+  justify-content: center;    /* vertical center */
+  align-items: center;        /* horizontal center */
+  text-align: center;         /* center text */
+}
+
+/* Spacing/width for the whole footer component (no-clip only) */
+.no-clip-footer .footer__component {
+  gap: 3.125rem;
+  padding: 3.75rem 0.9375rem 0;
+  max-width: 90rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Mobile tweaks */
+@media (max-width: 479px) {
+  .no-clip-footer .footer__component {
+    gap: 2rem;
+    padding: 2rem 0.9375rem 0;
+  }
 }
