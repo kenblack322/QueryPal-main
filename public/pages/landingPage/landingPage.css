@@ -14,6 +14,11 @@
   clip-path: none !important;
   -webkit-clip-path: none !important;
 }
+.no-clip-footer .footer__social-wrapper {
+  display: none;
+}
+
+
 .no-clip-footer .footer{
 	margin: 0;
 }
