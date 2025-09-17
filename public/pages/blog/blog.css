@@ -1,7 +1,13 @@
 /* .blog__filter-item {}
 
 .blog__filter-item.is-active {} */
-
+.blog-card__caption .text-body {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;  
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .blog-radio__background {
   transition: all 0.3s ease;
   opacity: 1;
