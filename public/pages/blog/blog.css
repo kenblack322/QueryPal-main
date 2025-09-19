@@ -33,7 +33,18 @@
 .blog_radio-field.is-active .blog-radio__hover {
   opacity: 1;
 }
+@media (min-width: 480px) { 
+  .limited-list .w-dyn-item:nth-child(n+4) {
+    display: none !important;
+  }
+}
+*/
 
+@media (max-width: 479px) {
+  .limited-list .w-dyn-item {
+    display: grid; 
+  }
+}
 /* @media only screen and (min-width: 992px) {
   .blog_item:nth-child(4) {
     grid-column: span 3;
