@@ -38,11 +38,11 @@
     display: none !important;
   }
 }
-*/
+
 
 @media (max-width: 479px) {
   .limited-list .w-dyn-item {
-    display: grid; 
+    display: flex; 
   }
 }
 /* @media only screen and (min-width: 992px) {
