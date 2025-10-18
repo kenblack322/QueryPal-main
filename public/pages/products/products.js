@@ -1,36 +1,61 @@
 function feedbackSlider() {
-  const swiperMain = new Swiper('.swiper', {
-    spaceBetween: 0,
-    slidesPerView: 1,
-    slidesPerGroup: 1,
+  // Ждем, пока DOM полностью загрузится
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', feedbackSlider);
+    return;
+  }
+  
+  const swiperElement = document.querySelector('.swiper');
+  if (!swiperElement) {
+    console.log('Swiper element not found, retrying...');
+    setTimeout(feedbackSlider, 100);
+    return;
+  }
+  
+  // Проверяем, что Swiper загружен
+  if (typeof Swiper === 'undefined') {
+    console.error('Swiper library not loaded');
+    return;
+  }
 
-    observer: true,
-    observeParents: true,
+  try {
+    const swiperMain = new Swiper('.swiper', {
+      spaceBetween: 0,
+      slidesPerView: 1,
+      slidesPerGroup: 1,
 
-    grabCursor: false,
-    a11y: false,
-    allowTouchMove: true,
+      observer: true,
+      observeParents: true,
 
-    loop: true,
-    speed: 600,
+      grabCursor: false,
+      a11y: false,
+      allowTouchMove: true,
 
-    autoplay: {
-      delay: 10000,
-    },
+      loop: true,
+      speed: 600,
 
-    effect: 'fade',
-    fadeEffect: {
-      crossFade: true,
-    },
+      autoplay: {
+        delay: 10000,
+      },
 
-    pagination: {
-      el: '.feedback__pagination',
-      type: 'bullets',
-      clickable: true,
-      bulletClass: 'feedback-bullet', // Убери точку
-      bulletActiveClass: 'feedback-bullet-active', // Убери точку
-    },
-  });
+      effect: 'fade',
+      fadeEffect: {
+        crossFade: true,
+      },
+
+      pagination: {
+        el: '.feedback__pagination',
+        type: 'bullets',
+        clickable: true,
+        bulletClass: 'feedback-bullet', // Убери точку
+        bulletActiveClass: 'feedback-bullet-active', // Убери точку
+      },
+    });
+    
+    console.log('Swiper initialized successfully');
+  } catch (error) {
+    console.error('Swiper initialization failed:', error);
+  }
 
   // const swiperSecond = new Swiper('#feedbackSecondSwiper', {
   //   spaceBetween: 0,
@@ -61,7 +86,31 @@ function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
+// Инициализируем сразу
 feedbackSlider();
+
+// Также отслеживаем изменения DOM для Webflow компонентов
+const observer = new MutationObserver(function(mutations) {
+  mutations.forEach(function(mutation) {
+    if (mutation.type === 'childList') {
+      // Проверяем, появились ли новые элементы с классом .swiper
+      const newSwipers = Array.from(mutation.addedNodes).filter(node => 
+        node.nodeType === 1 && node.classList && node.classList.contains('swiper')
+      );
+      
+      if (newSwipers.length > 0) {
+        console.log('New swiper elements detected, reinitializing...');
+        setTimeout(feedbackSlider, 100);
+      }
+    }
+  });
+});
+
+// Начинаем наблюдение
+observer.observe(document.body, {
+  childList: true,
+  subtree: true
+});
 
 // DESKTOP FUNCTIONS
 if (!isMobile() && window.innerWidth > 992) {
