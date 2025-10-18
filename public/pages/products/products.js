@@ -1,5 +1,5 @@
 function feedbackSlider() {
-  const swiperMain = new Swiper('#feedbackMainSwiper', {
+  const swiperMain = new Swiper('.swiper', {
     spaceBetween: 0,
     slidesPerView: 1,
     slidesPerGroup: 1,
@@ -24,7 +24,7 @@ function feedbackSlider() {
     },
 
     pagination: {
-      el: '#feedbackPagination',
+      el: '.feedback__pagination',
       type: 'bullets',
       clickable: true,
       bulletClass: 'feedback-bullet', // Убери точку
