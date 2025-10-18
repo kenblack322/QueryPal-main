@@ -1,45 +1,45 @@
-function initMobileSwiper() {
+function feedbackSlider() {
   // Ищем все элементы с классом swiper
   const swiperElements = document.querySelectorAll('.swiper');
   
   swiperElements.forEach(element => {
     new Swiper(element, {
-      // Основные настройки для мобильного
-      spaceBetween: 10,
+      spaceBetween: 0,
       slidesPerView: 1,
-      centeredSlides: true,
-      
-      // Мобильные настройки
-      touchRatio: 1,
-      touchAngle: 45,
-      grabCursor: true,
+      slidesPerGroup: 1,
+
+      observer: true,
+      observeParents: true,
+
+      grabCursor: false,
+      a11y: false,
       allowTouchMove: true,
-      
-      // Автоплей
-      autoplay: {
-        delay: 5000,
-        disableOnInteraction: false,
-      },
-      
-      // Скорость анимации
-      speed: 300,
-      
-      // Цикличность
+
       loop: true,
+      speed: 600,
+
+      autoplay: {
+        delay: 10000,
+      },
+
+      effect: 'fade',
+      fadeEffect: {
+        crossFade: true,
+      },
+
+      pagination: {
+        el: '.swiper-pagination',
+        type: 'bullets',
+        clickable: true,
+        bulletClass: 'feedback-bullet',
+        bulletActiveClass: 'feedback-bullet-active',
+      },
     });
   });
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////// MOBILE SWIPER /////////////////////////////////////////////
+/////////////////////////////////////// ADAPTIVES /////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Инициализация свайпера при загрузке страницы
-document.addEventListener('DOMContentLoaded', function() {
-  initMobileSwiper();
-});
-
-// Переинициализация при изменении размера окна
-window.addEventListener('resize', function() {
-  initMobileSwiper();
-});
+feedbackSlider();
