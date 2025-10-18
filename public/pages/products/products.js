@@ -12,6 +12,12 @@ function feedbackSlider() {
     return;
   }
   
+  // Проверяем, не инициализирован ли уже Swiper
+  if (swiperElement.classList.contains('swiper-initialized')) {
+    console.log('Swiper already initialized');
+    return;
+  }
+  
   // Проверяем, что Swiper загружен
   if (typeof Swiper === 'undefined') {
     console.error('Swiper library not loaded');
@@ -19,6 +25,10 @@ function feedbackSlider() {
   }
 
   try {
+    console.log('Initializing Swiper...');
+    console.log('Swiper element:', swiperElement);
+    console.log('Swiper classes:', swiperElement.className);
+    
     const swiperMain = new Swiper('.swiper', {
       spaceBetween: 0,
       slidesPerView: 1,
@@ -86,8 +96,8 @@ function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-// Инициализируем сразу
-feedbackSlider();
+// Инициализируем с задержкой для Webflow
+setTimeout(feedbackSlider, 500);
 
 // Также отслеживаем изменения DOM для Webflow компонентов
 const observer = new MutationObserver(function(mutations) {
