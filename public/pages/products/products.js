@@ -1,5 +1,5 @@
 function feedbackSlider() {
-  const swiperMain = new Swiper('.swiper-review', {
+  const swiperMain = new Swiper('swiper-review', {
     spaceBetween: 0,
     slidesPerView: 1,
     slidesPerGroup: 1,
