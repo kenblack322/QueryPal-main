@@ -28,7 +28,7 @@ function feedbackSlider() {
       },
 
       pagination: {
-        el: '.swiper-pagination',
+        el: '.feedback__pagination',
         type: 'bullets',
         clickable: true,
         bulletClass: 'feedback-bullet',
