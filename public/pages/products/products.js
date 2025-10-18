@@ -1,64 +1,5 @@
 function feedbackSlider() {
-  // Ждем, пока DOM полностью загрузится
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', feedbackSlider);
-    return;
-  }
-  
-  const swiperElement = document.querySelector('.swiper');
-  if (!swiperElement) {
-    console.log('Swiper element not found, retrying...');
-    setTimeout(feedbackSlider, 100);
-    return;
-  }
-  
-  // Проверяем, не инициализирован ли уже Swiper
-  if (swiperElement.classList.contains('swiper-initialized')) {
-    console.log('Swiper already initialized, destroying existing instance...');
-    
-    // Уничтожаем существующий Swiper
-    if (swiperElement.swiper) {
-      swiperElement.swiper.destroy(true, true);
-    }
-    
-    // Удаляем все классы Swiper
-    swiperElement.className = swiperElement.className.replace(/swiper-\S+/g, '').trim();
-    swiperElement.className += ' swiper';
-    
-    // Небольшая задержка для очистки DOM
-    setTimeout(() => {
-      initializeSwiper();
-    }, 100);
-    return;
-  }
-  
-  initializeSwiper();
-}
-
-function initializeSwiper() {
-  const swiperElement = document.querySelector('.swiper');
-  
-  // Проверяем, что Swiper загружен
-  if (typeof Swiper === 'undefined') {
-    console.error('Swiper library not loaded');
-    return;
-  }
-
-  // Проверяем наличие пагинации
-  const paginationElement = document.querySelector('.feedback__pagination');
-  if (!paginationElement) {
-    console.warn('Pagination element not found, creating one...');
-    const pagination = document.createElement('div');
-    pagination.className = 'feedback__pagination';
-    swiperElement.appendChild(pagination);
-  }
-
-  try {
-    console.log('Initializing Swiper with custom settings...');
-    console.log('Swiper element:', swiperElement);
-    console.log('Swiper classes:', swiperElement.className);
-    
-    const swiperMain = new Swiper('.swiper', {
+  const swiperMain = new Swiper('#feedbackMainSwiper', {
       spaceBetween: 0,
       slidesPerView: 1,
       slidesPerGroup: 1,
@@ -82,19 +23,14 @@ function initializeSwiper() {
         crossFade: true,
       },
 
-      pagination: {
-        el: '.feedback__pagination',
-        type: 'bullets',
-        clickable: true,
-        bulletClass: 'feedback-bullet', // Убери точку
-        bulletActiveClass: 'feedback-bullet-active', // Убери точку
-      },
-    });
-    
-    console.log('Swiper initialized successfully');
-  } catch (error) {
-    console.error('Swiper initialization failed:', error);
-  }
+    pagination: {
+      el: '#feedbackPagination',
+      type: 'bullets',
+      clickable: true,
+      bulletClass: 'feedback-bullet', // Убери точку
+      bulletActiveClass: 'feedback-bullet-active', // Убери точку
+    },
+  });
 
   // const swiperSecond = new Swiper('#feedbackSecondSwiper', {
   //   spaceBetween: 0,
@@ -125,31 +61,7 @@ function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-// Инициализируем с задержкой для Webflow
-setTimeout(feedbackSlider, 500);
-
-// Также отслеживаем изменения DOM для Webflow компонентов
-const observer = new MutationObserver(function(mutations) {
-  mutations.forEach(function(mutation) {
-    if (mutation.type === 'childList') {
-      // Проверяем, появились ли новые элементы с классом .swiper
-      const newSwipers = Array.from(mutation.addedNodes).filter(node => 
-        node.nodeType === 1 && node.classList && node.classList.contains('swiper')
-      );
-      
-      if (newSwipers.length > 0) {
-        console.log('New swiper elements detected, reinitializing...');
-        setTimeout(feedbackSlider, 100);
-      }
-    }
-  });
-});
-
-// Начинаем наблюдение
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
+feedbackSlider();
 
 // DESKTOP FUNCTIONS
 if (!isMobile() && window.innerWidth > 992) {
