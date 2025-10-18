@@ -14,9 +14,29 @@ function feedbackSlider() {
   
   // Проверяем, не инициализирован ли уже Swiper
   if (swiperElement.classList.contains('swiper-initialized')) {
-    console.log('Swiper already initialized');
+    console.log('Swiper already initialized, destroying existing instance...');
+    
+    // Уничтожаем существующий Swiper
+    if (swiperElement.swiper) {
+      swiperElement.swiper.destroy(true, true);
+    }
+    
+    // Удаляем все классы Swiper
+    swiperElement.className = swiperElement.className.replace(/swiper-\S+/g, '').trim();
+    swiperElement.className += ' swiper';
+    
+    // Небольшая задержка для очистки DOM
+    setTimeout(() => {
+      initializeSwiper();
+    }, 100);
     return;
   }
+  
+  initializeSwiper();
+}
+
+function initializeSwiper() {
+  const swiperElement = document.querySelector('.swiper');
   
   // Проверяем, что Swiper загружен
   if (typeof Swiper === 'undefined') {
@@ -24,8 +44,17 @@ function feedbackSlider() {
     return;
   }
 
+  // Проверяем наличие пагинации
+  const paginationElement = document.querySelector('.feedback__pagination');
+  if (!paginationElement) {
+    console.warn('Pagination element not found, creating one...');
+    const pagination = document.createElement('div');
+    pagination.className = 'feedback__pagination';
+    swiperElement.appendChild(pagination);
+  }
+
   try {
-    console.log('Initializing Swiper...');
+    console.log('Initializing Swiper with custom settings...');
     console.log('Swiper element:', swiperElement);
     console.log('Swiper classes:', swiperElement.className);
     
