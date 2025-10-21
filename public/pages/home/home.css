@@ -10,6 +10,14 @@
   animation: scroll 50s linear infinite;
 }
 
+
+.stat-num {
+  display: inline-block;
+  min-width: 3ch;
+  text-align: right;
+}
+
+
 /***************** Hover Circle Element ********************/
 @media screen and (min-width: 991px) {
   .features-cirle__cursor {

@@ -180,3 +180,39 @@ if (!isMobile() && window.innerWidth > 480) {
 if (isMobile() && window.innerWidth < 479) {
   homeHeaderScrollAnimation(0);
 }
+// GSAP statistics animation block
+document.addEventListener('DOMContentLoaded', () => {
+  if (!window.gsap) return;
+  gsap.registerPlugin(ScrollTrigger);
+
+  const section  = document.querySelector('.stats_text-heading')?.closest('section') || document.body;
+  const wrappers = gsap.utils.toArray('.stats_text-wrapper');
+  const nums     = gsap.utils.toArray('.stats_text-heading .stat-num').slice(0, 3); // take first 3
+
+  const tl = gsap.timeline({
+    scrollTrigger: { trigger: section, start: 'top 80%', once: true }
+  });
+
+  // 1) Fade and slide down text blocks sequentially
+  tl.from(wrappers, {
+    y: -20, opacity: 0, duration: 0.6, ease: 'power2.out', stagger: 0.15
+  });
+
+  // 2) Count numbers from 0 to data-target (keep decimals if exist)
+  const countTl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+
+  nums.forEach((el, i) => {
+    const targetStr = (el.dataset.target || '0').trim().replace(/\s/g,'');
+    const to = parseFloat(targetStr.replace(',', '.')) || 0;
+    const decimals = (targetStr.split(/[.,]/)[1] || '').length;
+    const proxy = { v: 0 };
+
+    countTl.to(proxy, {
+      v: to, duration: 1.2, onUpdate: () => {
+        el.textContent = proxy.v.toFixed(decimals).replace('.', ',');
+      }
+    }, i * 0.2); // small delay between numbers
+  });
+
+  tl.add(countTl, '>-0.1'); // start counting after fade animation
+});
