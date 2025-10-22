@@ -1,0 +1,8 @@
+.float-orbit-wrap { 
+  will-change: transform; 
+}
+
+.float-orbit { 
+  display: block; 
+  max-width: 100%; 
+}
