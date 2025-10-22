@@ -1,0 +1,46 @@
+/******************************** Home Header **************************************/
+.header__brand {
+  cursor: default !important;
+  pointer-events: none !important;
+  color: var(--color-white) !important;
+}
+
+/* Paddings */
+@media screen and (max-width: 1950px) {
+  .header-home .container {
+    max-width: 81.25rem !important;
+  }
+}
+
+@media screen and (min-width: 991px) {
+  .dropdown-toggle {
+    color: var(--color-white);
+  }
+
+  .navbar-link {
+    color: var(--color-white);
+  }
+
+  .navbar-link.is-dropdown {
+    color: var(--color-black);
+  }
+}
+
+@media screen and (max-width: 479px) {
+  .header__brand {
+    color: var(--color-black);
+  }
+
+  .menu-button {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/******************************** General Text Styles **************************************/
+.text-body {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;  
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
