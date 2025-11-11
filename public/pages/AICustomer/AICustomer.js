@@ -76,7 +76,7 @@
     );
 
     if (!gsap) {
-      console.warn('Не удалось получить объект GSAP. Проверьте подключение.');
+      console.warn('Unable to obtain a GSAP instance. Please verify that the library is loaded.');
       return;
     }
 

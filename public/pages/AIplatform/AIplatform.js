@@ -93,6 +93,8 @@
       };
     };
 
+    const TOGGLE_CLASS = 'search-toggle-target';
+
     const setupScope = (input) => {
       let tabPane = input.closest('.w-tab-pane, [role="tabpanel"], .tab-pane');
 
@@ -130,7 +132,8 @@
           const text = item.textContent || '';
           const match = query === '' || norm(text).includes(query);
 
-          item.style.display = match ? '' : 'none';
+          const toggleTarget = item.closest(`.${TOGGLE_CLASS}`) || item;
+          toggleTarget.style.display = match ? '' : 'none';
 
           if (match && query !== '') {
             highlightTextNodes(item, query);
