@@ -219,6 +219,26 @@
         .toLowerCase()
         .replace(/\s+/g, '');
 
+    const getScrollOffset = () => {
+      const header = document.querySelector('.header-fixed');
+      let offset = header ? header.offsetHeight : 0;
+
+      try {
+        const rootFontSize = parseFloat(
+          getComputedStyle(document.documentElement).fontSize || '16',
+        );
+        if (!Number.isNaN(rootFontSize)) {
+          offset += rootFontSize;
+        } else {
+          offset += 16;
+        }
+      } catch (error) {
+        offset += 16;
+      }
+
+      return offset;
+    };
+
     const findTabButton = (tabsContainer, tabName) => {
       const normalizedTarget = normalizeTabName(tabName);
       if (!normalizedTarget) return null;
@@ -251,7 +271,14 @@
               );
 
               if (target) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const scrollOffset = getScrollOffset();
+                const targetPosition = window.scrollY + target.getBoundingClientRect().top;
+                const top = Math.max(targetPosition - scrollOffset, 0);
+
+                window.scrollTo({
+                  top,
+                  behavior: 'smooth',
+                });
               }
             };
 
