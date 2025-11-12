@@ -213,28 +213,67 @@
    * Tab switching helper
    * --------------------------------------------------------------------- */
   (() => {
-    const switchToTab = (tabName) => {
+    const normalizeTabName = (value) =>
+      (value || '')
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, '');
+
+    const findTabButton = (tabsContainer, tabName) => {
+      const normalizedTarget = normalizeTabName(tabName);
+      if (!normalizedTarget) return null;
+
+      const candidates = tabsContainer.querySelectorAll('[data-tab], [data-w-tab]');
+
+      return (
+        Array.from(candidates).find((candidate) => {
+          const directMatch = normalizeTabName(candidate.getAttribute('data-tab'));
+          const webflowMatch = normalizeTabName(candidate.getAttribute('data-w-tab'));
+          return directMatch === normalizedTarget || webflowMatch === normalizedTarget;
+        }) || null
+      );
+    };
+
+    const switchToTab = (tabName, { sectionId } = {}) => {
       const allTabs = document.querySelectorAll('.w-tabs');
 
       allTabs.forEach((tabsContainer) => {
-        const tabButton = tabsContainer.querySelector(`[data-tab="${tabName}"]`);
+        const tabButton = findTabButton(tabsContainer, tabName);
 
         if (tabButton) {
           tabButton.click();
+
+          if (sectionId) {
+            const scrollToSection = () => {
+              const target = (
+                document.getElementById(sectionId) ||
+                tabsContainer.querySelector(`#${sectionId}`)
+              );
+
+              if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            };
+
+            setTimeout(scrollToSection, 260);
+          }
         }
       });
     };
 
     const initTabSwitching = () => {
       const tabLinks = document.querySelectorAll('a[data-tab-link], [data-tab-link]:not(.w-tab-link)');
-      tabLinks.forEach((link, index) => {
+      tabLinks.forEach((link) => {
         link.addEventListener('click', (event) => {
           event.preventDefault();
 
           const targetTab = link.getAttribute('data-tab-link');
+          const targetSection = link.getAttribute('data-tab-section');
 
           if (targetTab) {
-            switchToTab(targetTab);
+            switchToTab(targetTab, {
+              sectionId: targetSection,
+            });
           }
         });
       });
