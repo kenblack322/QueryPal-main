@@ -6,3 +6,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+#calc-donut-month1-path,
+#calc-donut-month3-path,
+#calc-donut-year1-path {
+  stroke: url(#gradient-top-month1) !important;
+  fill: none !important;
+}
+
+#calc-donut-month3-path {
+  stroke: url(#gradient-top-month3) !important;
+}
+
+#calc-donut-year1-path {
+  stroke: url(#gradient-top-year1) !important;
+}

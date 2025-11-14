@@ -406,5 +406,89 @@
       iconWrap.addEventListener('mouseleave', handleHoverOut);
     });
   });
+
+  /* ------------------------------------------------------------------------
+   * Donut charts calculator
+   * --------------------------------------------------------------------- */
+  (() => {
+    const CENTER = 155;
+    const RADIUS = 130;
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+
+    const angleToPoint = (angle) => {
+      const rad = (angle * Math.PI) / 180;
+      return {
+        x: CENTER + RADIUS * Math.cos(rad),
+        y: CENTER + RADIUS * Math.sin(rad),
+      };
+    };
+
+    const createArc = (percent) => {
+      const clamped = Math.max(0, Math.min(100, percent));
+      const startAngle = -90;
+      const sweep = (clamped / 100) * 360;
+      const endAngle = startAngle + sweep;
+      const largeArcFlag = clamped > 50 ? 1 : 0;
+
+      const start = angleToPoint(startAngle);
+      const end = angleToPoint(endAngle);
+
+      return `M ${start.x} ${start.y} A ${RADIUS} ${RADIUS} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
+    };
+
+    const donuts = {
+      month1: {
+        path: document.getElementById('calc-donut-month1-path'),
+        value: document.getElementById('calc-donut-month1-value'),
+        rest: document.getElementById('calc-donut-month1-rest'),
+        gradientId: 'gradient-top-month1',
+      },
+      month3: {
+        path: document.getElementById('calc-donut-month3-path'),
+        value: document.getElementById('calc-donut-month3-value'),
+        rest: document.getElementById('calc-donut-month3-rest'),
+        gradientId: 'gradient-top-month3',
+      },
+      year1: {
+        path: document.getElementById('calc-donut-year1-path'),
+        value: document.getElementById('calc-donut-year1-value'),
+        rest: document.getElementById('calc-donut-year1-rest'),
+        gradientId: 'gradient-top-year1',
+      },
+    };
+
+    const updateDonut = (key, percent) => {
+      const donut = donuts[key];
+      if (!donut || !donut.path) return;
+
+      donut.path.setAttributeNS(null, 'd', createArc(percent));
+      donut.path.setAttributeNS(null, 'stroke', `url(#${donut.gradientId})`);
+      donut.path.setAttributeNS(null, 'stroke-width', '50');
+      donut.path.setAttributeNS(null, 'fill', 'none');
+      donut.path.setAttributeNS(null, 'stroke-linecap', 'round');
+      donut.path.style.stroke = '';
+      donut.path.style.fill = '';
+
+      if (donut.value) donut.value.textContent = `${percent}%`;
+
+      if (donut.rest) {
+        const rest = Math.max(0, Math.min(100, 100 - percent));
+        donut.rest.textContent = `${rest}%`;
+      }
+    };
+
+    window.calcUpdateDonuts = (deflection) => {
+      const d = Number(deflection) || 0;
+      const month3 = Math.max(0, Math.min(100, Math.round(d)));
+      const month1 = Math.max(0, Math.min(100, Math.round(d * 0.25)));
+      const year1 = Math.min(Math.round(d * 2), 99);
+
+      updateDonut('month3', month3);
+      updateDonut('month1', month1);
+      updateDonut('year1', year1);
+    };
+
+    window.calcUpdateDonuts(85);
+  })();
 })();
 
