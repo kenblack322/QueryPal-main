@@ -490,5 +490,104 @@
 
     window.calcUpdateDonuts(85);
   })();
+
+  /* ------------------------------------------------------------------------
+   * Deflection slider color change based on value proximity to 10 or 90
+   * --------------------------------------------------------------------- */
+  (() => {
+    // Convert hex color to RGB
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result
+        ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16),
+          }
+        : null;
+    };
+
+    // Interpolate between two colors
+    const interpolateColor = (color1, color2, factor) => {
+      const rgb1 = hexToRgb(color1);
+      const rgb2 = hexToRgb(color2);
+
+      if (!rgb1 || !rgb2) return color1;
+
+      const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * factor);
+      const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * factor);
+      const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * factor);
+
+      return `rgb(${r}, ${g}, ${b})`;
+    };
+
+    // Calculate proximity factor to 10 or 90
+    const getProximityFactor = (value) => {
+      const target1 = 10;
+      const target2 = 90;
+      const threshold = 40; // Distance at which color fully changes
+
+      // Calculate distance to nearest target point
+      const dist1 = Math.abs(value - target1);
+      const dist2 = Math.abs(value - target2);
+      const minDist = Math.min(dist1, dist2);
+
+      // If value is far from 10 and 90, return 0 (base color)
+      if (minDist >= threshold) return 0;
+
+      // Smooth interpolation using ease-out function
+      const normalized = 1 - minDist / threshold;
+      return Math.pow(normalized, 1.5); // Adjust exponent for smoother/sharp transition
+    };
+
+    const updateSliderColor = () => {
+      const sliderFill = document.querySelector('.fs_rangeslider-1_fill');
+      if (!sliderFill) return;
+
+      // Get value from calc-deflection-output
+      const outputEl = document.getElementById('calc-deflection-output');
+      if (!outputEl) return;
+
+      const value = parseFloat(outputEl.textContent) || 0;
+      const factor = getProximityFactor(value);
+
+      const color1 = '#b35dff'; // Base purple color
+      const color2 = '#DF7D94'; // Pink color when close to 10/90
+
+      const newColor = interpolateColor(color1, color2, factor);
+      sliderFill.style.backgroundColor = newColor;
+    };
+
+    // Track deflection value changes
+    const initDeflectionColorChange = () => {
+      const outputEl = document.getElementById('calc-deflection-output');
+      if (!outputEl) return;
+
+      // Use MutationObserver to track text changes
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'childList' || mutation.type === 'characterData') {
+            updateSliderColor();
+          }
+        });
+      });
+
+      observer.observe(outputEl, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+
+      // Update color on load
+      updateSliderColor();
+    };
+
+    // Initialize
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initDeflectionColorChange);
+    } else {
+      initDeflectionColorChange();
+    }
+  })();
 })();
 
