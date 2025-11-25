@@ -589,5 +589,246 @@
       initDeflectionColorChange();
     }
   })();
+
+  /* ------------------------------------------------------------------------
+   * ROI Calculator
+   * --------------------------------------------------------------------- */
+  (() => {
+    // Constants
+    const QUERYPAL_PRICE_PER_TICKET = 1.0;
+    const MONTHS_PER_YEAR = 12;
+
+    // Format currency
+    const formatCurrency = (value) => {
+      return '$' + Math.round(value).toLocaleString('en-US', { maximumFractionDigits: 0 });
+    };
+
+    // Format number
+    const formatNumber = (value) => {
+      return Math.round(value).toLocaleString('en-US', { maximumFractionDigits: 0 });
+    };
+
+    // Format percentage
+    const formatPercent = (value) => {
+      return value.toFixed(1) + '%';
+    };
+
+    // Get input values
+    const getInputs = () => {
+      const agentsEl = document.getElementById('calc-agents-input');
+      const salaryEl = document.getElementById('calc-salary-input');
+      const ticketsEl = document.getElementById('calc-tickets-input');
+      const deflectionEl = document.getElementById('calc-deflection-output');
+      const growthRadios = document.querySelectorAll('input[name="calc-growth"]:checked');
+
+      const agents = parseFloat(agentsEl?.value || agentsEl?.textContent || 0) || 0;
+      const salary = parseFloat(salaryEl?.value || salaryEl?.textContent || 0) || 0;
+      const ticketsPerMonth = parseFloat(ticketsEl?.value || ticketsEl?.textContent || 0) || 0;
+      const deflection = parseFloat(deflectionEl?.textContent || deflectionEl?.value || 0) || 0;
+      const growth = growthRadios.length > 0 ? parseFloat(growthRadios[0].value || growthRadios[0].id.replace('calc-growth-', '')) || 0 : 0;
+
+      return { agents, salary, ticketsPerMonth, deflection, growth };
+    };
+
+    // Calculate for a specific year with growth applied
+    const calculateYear = (year, baseAgents, baseTicketsPerMonth, salary, deflection, growthRate) => {
+      // Apply growth rate: Year 1 = base, Year 2 = base * (1 + growth), Year 3 = base * (1 + growth)^2
+      const growthMultiplier = Math.pow(1 + growthRate / 100, year - 1);
+      const agents = baseAgents * growthMultiplier;
+      const ticketsPerMonth = baseTicketsPerMonth * growthMultiplier;
+      const totalYearlyTickets = ticketsPerMonth * MONTHS_PER_YEAR;
+
+      // Step 2: Current Cost Per Ticket
+      const totalAgentSalaries = agents * salary;
+      const currentCostPerTicket = totalYearlyTickets > 0 ? totalAgentSalaries / totalYearlyTickets : 0;
+
+      // Step 3: Cost With QueryPal
+      const deflectionDecimal = deflection / 100;
+      const remainingDecimal = 1 - deflectionDecimal;
+
+      // Part 1: QueryPal Cost
+      const queryPalCost = totalYearlyTickets * deflectionDecimal * QUERYPAL_PRICE_PER_TICKET;
+
+      // Part 2: Human Cost
+      const humanCost = totalYearlyTickets * remainingDecimal * currentCostPerTicket;
+
+      // Total Cost With QueryPal
+      const costWithQueryPal = queryPalCost + humanCost;
+
+      // Step 4: Cost Without QueryPal
+      const costWithoutQueryPal = totalYearlyTickets * currentCostPerTicket;
+
+      // Step 5: ROI (Savings)
+      const savings = costWithoutQueryPal - costWithQueryPal;
+
+      // Tickets solved by AI
+      const ticketsSolvedByAI = totalYearlyTickets * deflectionDecimal;
+
+      return {
+        agents,
+        ticketsPerMonth,
+        totalYearlyTickets,
+        totalAgentSalaries,
+        currentCostPerTicket,
+        costWithQueryPal,
+        costWithoutQueryPal,
+        savings,
+        ticketsSolvedByAI,
+      };
+    };
+
+    // Calculate all years
+    const calculateAll = () => {
+      const inputs = getInputs();
+      const { agents, salary, ticketsPerMonth, deflection, growth } = inputs;
+
+      if (!agents || !salary || !ticketsPerMonth) {
+        return null;
+      }
+
+      const year1 = calculateYear(1, agents, ticketsPerMonth, salary, deflection, growth);
+      const year2 = calculateYear(2, agents, ticketsPerMonth, salary, deflection, growth);
+      const year3 = calculateYear(3, agents, ticketsPerMonth, salary, deflection, growth);
+
+      // Total savings over 3 years
+      const totalSavings3Years = year1.savings + year2.savings + year3.savings;
+
+      return {
+        year1,
+        year2,
+        year3,
+        totalSavings3Years,
+        inputs,
+      };
+    };
+
+    // Update UI elements
+    const updateUI = (results) => {
+      if (!results) return;
+
+      const { year1, year2, year3, totalSavings3Years } = results;
+
+      // Update headline savings
+      const savingsYearEl = document.getElementById('calc-savings-year');
+      const savings3YearEl = document.getElementById('calc-savings-3year');
+      const roiEl = document.getElementById('calc-roi');
+      const ticketsAIEl = document.getElementById('calc-tickets-ai');
+
+      if (savingsYearEl) savingsYearEl.textContent = formatCurrency(year1.savings);
+      if (savings3YearEl) savings3YearEl.textContent = formatCurrency(totalSavings3Years);
+      if (roiEl) roiEl.textContent = formatCurrency(year1.savings); // ROI is always dollar amount
+      if (ticketsAIEl) ticketsAIEl.textContent = formatNumber(year1.ticketsSolvedByAI);
+
+      // Update cost comparison for each year
+      const updateCostElement = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = formatCurrency(value);
+      };
+
+      // Year 1
+      updateCostElement('calc-cost-without-year1', year1.costWithoutQueryPal);
+      updateCostElement('calc-cost-with-year1', year1.costWithQueryPal);
+
+      // Year 2
+      updateCostElement('calc-cost-without-year2', year2.costWithoutQueryPal);
+      updateCostElement('calc-cost-with-year2', year2.costWithQueryPal);
+
+      // Year 3
+      updateCostElement('calc-cost-without-year3', year3.costWithoutQueryPal);
+      updateCostElement('calc-cost-with-year3', year3.costWithQueryPal);
+
+      // Update bar chart heights (if bars exist)
+      const updateBarHeight = (id, value, maxValue) => {
+        const bar = document.getElementById(id);
+        if (bar && maxValue > 0) {
+          const percentage = (value / maxValue) * 100;
+          bar.style.height = `${Math.min(100, percentage)}%`;
+        }
+      };
+
+      // Find max cost for scaling
+      const maxCost = Math.max(
+        year1.costWithoutQueryPal,
+        year2.costWithoutQueryPal,
+        year3.costWithoutQueryPal,
+        year1.costWithQueryPal,
+        year2.costWithQueryPal,
+        year3.costWithQueryPal,
+      );
+
+      // Update bar heights
+      updateBarHeight('calc-bar-without-year1', year1.costWithoutQueryPal, maxCost);
+      updateBarHeight('calc-bar-with-year1', year1.costWithQueryPal, maxCost);
+      updateBarHeight('calc-bar-without-year2', year2.costWithoutQueryPal, maxCost);
+      updateBarHeight('calc-bar-with-year2', year2.costWithQueryPal, maxCost);
+      updateBarHeight('calc-bar-without-year3', year3.costWithoutQueryPal, maxCost);
+      updateBarHeight('calc-bar-with-year3', year3.costWithQueryPal, maxCost);
+    };
+
+    // Recalculate and update
+    const recalculate = () => {
+      const results = calculateAll();
+      updateUI(results);
+
+      // Update donut charts if deflection changed
+      const inputs = getInputs();
+      if (window.calcUpdateDonuts && inputs.deflection !== undefined) {
+        window.calcUpdateDonuts(inputs.deflection);
+      }
+    };
+
+    // Initialize event listeners
+    const initCalculator = () => {
+      // Get all input elements
+      const agentsEl = document.getElementById('calc-agents-input');
+      const salaryEl = document.getElementById('calc-salary-input');
+      const ticketsEl = document.getElementById('calc-tickets-input');
+      const deflectionEl = document.getElementById('calc-deflection-output');
+      const growthRadios = document.querySelectorAll('input[name="calc-growth"]');
+
+      // Add event listeners
+      if (agentsEl) {
+        agentsEl.addEventListener('input', recalculate);
+        agentsEl.addEventListener('change', recalculate);
+      }
+
+      if (salaryEl) {
+        salaryEl.addEventListener('input', recalculate);
+        salaryEl.addEventListener('change', recalculate);
+      }
+
+      if (ticketsEl) {
+        ticketsEl.addEventListener('input', recalculate);
+        ticketsEl.addEventListener('change', recalculate);
+      }
+
+      // Watch for deflection changes using MutationObserver
+      if (deflectionEl) {
+        const observer = new MutationObserver(() => {
+          recalculate();
+        });
+        observer.observe(deflectionEl, {
+          childList: true,
+          characterData: true,
+          subtree: true,
+        });
+      }
+
+      // Watch for growth rate changes
+      growthRadios.forEach((radio) => {
+        radio.addEventListener('change', recalculate);
+      });
+
+      // Initial calculation
+      recalculate();
+    };
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCalculator);
+    } else {
+      initCalculator();
+    }
+  })();
 })();
 
