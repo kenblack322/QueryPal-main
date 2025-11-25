@@ -477,18 +477,50 @@
       }
     };
 
-    window.calcUpdateDonuts = (deflection) => {
-      const d = Number(deflection) || 0;
-      const month3 = Math.max(0, Math.min(100, Math.round(d)));
-      const month1 = Math.max(0, Math.min(100, Math.round(d * 0.25)));
-      const year1 = Math.min(Math.round(d * 2), 99);
-
-      updateDonut('month3', month3);
-      updateDonut('month1', month1);
-      updateDonut('year1', year1);
+    // Calculate percentage of "Cost without QueryPal" from total cost
+    const calculateCostWithoutPercentage = (costWithout, costWith) => {
+      const totalCost = costWithout + costWith;
+      if (totalCost === 0) return 100; // Default to 100% if no cost
+      return (costWithout / totalCost) * 100;
     };
 
-    window.calcUpdateDonuts(85);
+    window.calcUpdateDonuts = (deflection, year1Data = null) => {
+      // If year1Data is provided, use actual calculated values
+      if (year1Data && year1Data.costWithoutQueryPal && year1Data.costWithQueryPal) {
+        // Calculate base percentage from Year 1 data (this is the percentage after full year)
+        const year1BasePercent = calculateCostWithoutPercentage(
+          year1Data.costWithoutQueryPal,
+          year1Data.costWithQueryPal,
+        );
+
+        // Apply time-based multipliers to show progression
+        // Month 1: Higher percentage (less QueryPal effect, more original cost)
+        // Month 3: Medium percentage (partial QueryPal effect)
+        // Year 1: Lower percentage (full QueryPal effect, minimal original cost)
+        const month1Percent = Math.max(0, Math.min(100, year1BasePercent * 4.5)); // Much higher in early months
+        const month3Percent = Math.max(0, Math.min(100, year1BasePercent * 2.0)); // Medium
+        const year1Percent = Math.max(1, Math.min(99, year1BasePercent)); // Actual calculated value
+
+        updateDonut('month1', Math.round(month1Percent));
+        updateDonut('month3', Math.round(month3Percent));
+        updateDonut('year1', Math.round(year1Percent));
+      } else {
+        // Fallback: use deflection-based calculation
+        // Show percentage of "Cost without QueryPal" which decreases as deflection increases
+        const d = Number(deflection) || 0;
+        // Higher deflection = lower percentage of "Cost without QueryPal"
+        // Month 1: deflection is 25% of Month 3, so cost without is higher
+        // Month 3: full deflection
+        // Year 1: deflection is 2x, so cost without is minimal
+        const month3Percent = Math.max(0, Math.min(100, 100 - d));
+        const month1Percent = Math.max(0, Math.min(100, 100 - d * 0.25));
+        const year1Percent = Math.max(1, Math.min(99, 100 - Math.min(d * 2, 99)));
+
+        updateDonut('month1', Math.round(month1Percent));
+        updateDonut('month3', Math.round(month3Percent));
+        updateDonut('year1', Math.round(year1Percent));
+      }
+    };
   })();
 
   /* ------------------------------------------------------------------------
@@ -783,9 +815,13 @@
       const results = calculateAll();
       updateUI(results);
 
-      // Update donut charts if deflection changed
+      // Update donut charts with actual calculated data
       const inputs = getInputs();
-      if (window.calcUpdateDonuts && inputs.deflection !== undefined) {
+      if (window.calcUpdateDonuts && results && results.year1) {
+        // Pass deflection and year1 data to calculate correct percentages
+        window.calcUpdateDonuts(inputs.deflection, results.year1);
+      } else if (window.calcUpdateDonuts && inputs.deflection !== undefined) {
+        // Fallback: use deflection only
         window.calcUpdateDonuts(inputs.deflection);
       }
     };
