@@ -468,16 +468,9 @@
         ? Math.max(0, Math.min(100, costWithoutPercent))
         : Math.max(0, Math.min(100, 100 - costWithPercent));
       
-      console.log(`updateDonut ${key}:`, {
-        costWithPercent,
-        costWithoutPercent,
-        costWithout,
-        'arc will be drawn with': costWithout
-      });
-      
-      // The filled segment (brown donut) shows "Cost without QueryPal" percentage (right value)
+      // The filled segment (brown donut) shows "Cost with QueryPal" percentage (left value)
       // This should be a small segment (e.g., 3% for Year 1)
-      donut.path.setAttributeNS(null, 'd', createArc(costWithout));
+      donut.path.setAttributeNS(null, 'd', createArc(costWithPercent));
       donut.path.setAttributeNS(null, 'stroke', `url(#${donut.gradientId})`);
       donut.path.setAttributeNS(null, 'stroke-width', '50');
       donut.path.setAttributeNS(null, 'fill', 'none');
