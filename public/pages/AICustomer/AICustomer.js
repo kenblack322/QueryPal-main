@@ -1043,24 +1043,15 @@
 
     // Recalculate and update
     const recalculate = () => {
-      console.log('Recalculating...');
       const inputs = getInputs();
-      console.log('Inputs:', inputs);
       
       const results = calculateAll();
       if (!results) {
-        console.warn('No results calculated - check inputs');
         return;
       }
       
       // Store results globally for PDF download access
       window.calcLastResults = results;
-      
-      console.log('Results calculated:', {
-        year1: { costWithout: results.year1.costWithoutQueryPal, costWith: results.year1.costWithQueryPal },
-        year2: { costWithout: results.year2.costWithoutQueryPal, costWith: results.year2.costWithQueryPal },
-        year3: { costWithout: results.year3.costWithoutQueryPal, costWith: results.year3.costWithQueryPal },
-      });
       
       updateUI(results);
       
@@ -1071,8 +1062,6 @@
       if (window.calcUpdateDonuts && inputs.deflection !== undefined) {
         // Pass inputs so donuts can calculate percentages based on real data
         window.calcUpdateDonuts(inputs.deflection, inputs);
-      } else {
-        console.warn('calcUpdateDonuts not available or deflection not found');
       }
     };
 
