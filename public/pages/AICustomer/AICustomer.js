@@ -1360,10 +1360,10 @@
           }
         }
 
-        // Close popup after short delay (if exists)
+        // Reset form and re-enable buttons after short delay
+        // Popup closing is handled by Webflow animations
         setTimeout(() => {
           if (popup) {
-            popup.style.display = 'none';
             // Reset form
             const form = popup.querySelector('form');
             if (form) form.reset();
@@ -1493,7 +1493,7 @@
     const initPDFDownload = () => {
       console.log('Initializing PDF download functionality...');
       
-      // Download button - for testing, directly generate PDF without form
+      // Download button - generate PDF directly (popup opening/closing handled by Webflow)
       const downloadBtn = document.getElementById('calc-download-btn');
       console.log('Download button found:', downloadBtn);
       if (downloadBtn) {
@@ -1501,59 +1501,11 @@
           e.preventDefault();
           e.stopPropagation();
           console.log('Download button clicked - generating PDF directly');
-          
-          // Check if popup exists - if yes, open it first, if no, generate PDF directly
-          const popup = document.getElementById('calc-download-popup');
-          if (popup) {
-            // Popup exists, open it first
-            popup.style.display = 'flex';
-            popup.classList.add('calc-popup-visible');
-            console.log('Popup opened');
-          } else {
-            // No popup, generate PDF directly
-            console.log('No popup found, generating PDF directly');
-            generatePDF(null);
-          }
+          // Generate PDF directly (popup animation handled by Webflow)
+          generatePDF(null);
         });
       } else {
         console.warn('Download button not found! Make sure button has ID: calc-download-btn');
-      }
-      
-      // Open popup button (if different from download button)
-      const openBtn = document.getElementById('calc-popup-open');
-      if (openBtn) {
-        openBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('Open button clicked');
-          const popup = document.getElementById('calc-download-popup');
-          console.log('Popup element:', popup);
-          if (popup) {
-            popup.style.display = 'flex';
-            popup.classList.add('calc-popup-visible');
-            console.log('Popup should be visible now');
-          } else {
-            console.error('Popup element not found! Make sure ID is calc-download-popup');
-          }
-        });
-      }
-
-      // Close popup button
-      const closeBtn = document.getElementById('calc-popup-close');
-      if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-          const popup = document.getElementById('calc-download-popup');
-          if (popup) {
-            popup.style.display = 'none';
-            popup.classList.remove('calc-popup-visible');
-            // Reset form
-            const form = popup.querySelector('form');
-            if (form) form.reset();
-            // Remove messages
-            const messageEl = popup.querySelector('.calc-download-message');
-            if (messageEl) messageEl.remove();
-          }
-        });
       }
 
       // Form submission - wait a bit for form to be available
