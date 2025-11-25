@@ -1096,7 +1096,7 @@
    * --------------------------------------------------------------------- */
   (() => {
     const PDF_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook/7ad16972-c30c-46a5-9970-fdcbb0d4c916';
-    const HUBSPOT_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook-test/694308a2-dbf3-466e-bb17-aeba183a1488';
+    const HUBSPOT_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook/694308a2-dbf3-466e-bb17-aeba183a1488';
 
     // Collect calculator data for PDF
     const collectCalculatorData = () => {
