@@ -459,15 +459,17 @@
       },
     };
 
-    const updateDonut = (key, costWithPercent) => {
+    const updateDonut = (key, costWithPercent, costWithoutPercent) => {
       const donut = donuts[key];
       if (!donut || !donut.path) return;
 
-      // Calculate "Cost without QueryPal" percentage (what should fill the donut)
-      const costWithoutPercent = Math.max(0, Math.min(100, 100 - costWithPercent));
+      // Ensure costWithoutPercent is valid (use provided value or calculate from costWithPercent)
+      const costWithout = costWithoutPercent !== undefined 
+        ? Math.max(0, Math.min(100, costWithoutPercent))
+        : Math.max(0, Math.min(100, 100 - costWithPercent));
       
-      // The filled segment shows "Cost without QueryPal" percentage
-      donut.path.setAttributeNS(null, 'd', createArc(costWithoutPercent));
+      // The filled segment (brown donut) shows "Cost without QueryPal" percentage (right value)
+      donut.path.setAttributeNS(null, 'd', createArc(costWithout));
       donut.path.setAttributeNS(null, 'stroke', `url(#${donut.gradientId})`);
       donut.path.setAttributeNS(null, 'stroke-width', '50');
       donut.path.setAttributeNS(null, 'fill', 'none');
@@ -475,12 +477,12 @@
       donut.path.style.stroke = '';
       donut.path.style.fill = '';
 
-      // Left value shows "Cost with QueryPal" (swapped)
+      // Left value shows "Cost with QueryPal"
       if (donut.value) donut.value.textContent = `${Math.round(costWithPercent)}%`;
 
-      // Right value shows "Cost without QueryPal" (swapped)
+      // Right value shows "Cost without QueryPal" (this is what fills the brown segment)
       if (donut.rest) {
-        donut.rest.textContent = `${Math.round(costWithoutPercent)}%`;
+        donut.rest.textContent = `${Math.round(costWithout)}%`;
       }
     };
 
