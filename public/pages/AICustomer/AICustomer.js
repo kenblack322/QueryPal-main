@@ -550,41 +550,53 @@
       const month1Deflection = Math.max(0, Math.min(100, Math.round(d * 0.25)));
       const year1Deflection = Math.min(Math.round(d * 2), 99);
       
-      // Calculate "Cost with QueryPal" as percentage of total cost for each period
-      // This is what should be displayed in the donut chart (the filled segment)
-      let month1Percent, month3Percent, year1Percent;
+      // Calculate percentages for each period
+      let month1CostWith, month3CostWith, year1CostWith;
+      let month1CostWithout, month3CostWithout, year1CostWithout;
       
       if (agents && salary && ticketsPerMonth) {
-        // Calculate using actual inputs - percentage of "Cost with QueryPal" from total cost
-        month3Percent = calculateCostWithPercentage(month3Deflection, agents, ticketsPerMonth, salary);
-        month1Percent = calculateCostWithPercentage(month1Deflection, agents, ticketsPerMonth, salary);
-        year1Percent = calculateCostWithPercentage(year1Deflection, agents, ticketsPerMonth, salary);
+        // Calculate "Cost with QueryPal" as percentage of total cost
+        month3CostWith = calculateCostWithPercentage(month3Deflection, agents, ticketsPerMonth, salary);
+        month1CostWith = calculateCostWithPercentage(month1Deflection, agents, ticketsPerMonth, salary);
+        year1CostWith = calculateCostWithPercentage(year1Deflection, agents, ticketsPerMonth, salary);
         
         // Ensure percentages are between 0 and 100
-        month1Percent = Math.max(0, Math.min(100, month1Percent));
-        month3Percent = Math.max(0, Math.min(100, month3Percent));
-        year1Percent = Math.max(0, Math.min(100, year1Percent));
+        month1CostWith = Math.max(0, Math.min(100, month1CostWith));
+        month3CostWith = Math.max(0, Math.min(100, month3CostWith));
+        year1CostWith = Math.max(0, Math.min(100, year1CostWith));
+        
+        // Calculate "Cost without QueryPal" percentage (what fills the donut segment)
+        month1CostWithout = 100 - month1CostWith;
+        month3CostWithout = 100 - month3CostWith;
+        year1CostWithout = 100 - year1CostWith;
       } else {
         // Fallback: use deflection as approximation
-        // Note: This is just a fallback, real calculation is preferred
-        month3Percent = Math.max(0, Math.min(100, month3Deflection));
-        month1Percent = Math.max(0, Math.min(100, month1Deflection));
-        year1Percent = Math.max(0, Math.min(100, year1Deflection));
+        month3CostWith = Math.max(0, Math.min(100, month3Deflection));
+        month1CostWith = Math.max(0, Math.min(100, month1Deflection));
+        year1CostWith = Math.max(0, Math.min(100, year1Deflection));
+        
+        month1CostWithout = 100 - month1CostWith;
+        month3CostWithout = 100 - month3CostWith;
+        year1CostWithout = 100 - year1CostWith;
       }
 
-      console.log('Updating donuts (Cost with QueryPal percentage):', {
+      console.log('Updating donuts:', {
         deflection: d,
         month1Deflection,
         month3Deflection,
         year1Deflection,
-        month1CostWithPercent: Math.round(month1Percent),
-        month3CostWithPercent: Math.round(month3Percent),
-        year1CostWithPercent: Math.round(year1Percent),
+        month1CostWith: Math.round(month1CostWith),
+        month1CostWithout: Math.round(month1CostWithout),
+        month3CostWith: Math.round(month3CostWith),
+        month3CostWithout: Math.round(month3CostWithout),
+        year1CostWith: Math.round(year1CostWith),
+        year1CostWithout: Math.round(year1CostWithout),
       });
 
-      updateDonut('month1', Math.round(month1Percent));
-      updateDonut('month3', Math.round(month3Percent));
-      updateDonut('year1', Math.round(year1Percent));
+      // Update donuts: pass costWithPercent, but segment will be drawn using costWithoutPercent (right value)
+      updateDonut('month1', Math.round(month1CostWith), Math.round(month1CostWithout));
+      updateDonut('month3', Math.round(month3CostWith), Math.round(month3CostWithout));
+      updateDonut('year1', Math.round(year1CostWith), Math.round(year1CostWithout));
     };
   })();
 
