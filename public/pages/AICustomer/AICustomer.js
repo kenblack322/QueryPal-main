@@ -1341,7 +1341,7 @@
       }
     };
 
-    // Handle form submission
+    // Handle form submission (form is optional for testing)
     const handleFormSubmit = (e) => {
       console.log('handleFormSubmit called');
       if (e) {
@@ -1361,33 +1361,38 @@
 
       console.log('Form values:', { firstName, email, company });
 
-      // Basic validation (Webflow should handle this, but double-check)
-      if (!firstName || !email) {
-        console.warn('First name and email are required');
-        alert('Please fill in First Name and Email fields');
-        return;
+      // Form validation is optional for testing
+      // If form fields exist and are filled, validate them
+      if (firstNameEl && emailEl) {
+        if (!firstName || !email) {
+          console.warn('First name and email are required');
+          alert('Please fill in First Name and Email fields');
+          return;
+        }
+
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          console.warn('Invalid email format');
+          alert('Please enter a valid email address');
+          return;
+        }
       }
 
-      // Basic email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        console.warn('Invalid email format');
-        alert('Please enter a valid email address');
-        return;
-      }
-
-      const formData = {
+      const formData = firstName && email ? {
         firstName,
         email,
         company,
-      };
+      } : null;
 
-      console.log('Form data validated, proceeding with PDF generation');
+      console.log('Form data:', formData);
 
-      // Send to HubSpot (fire and forget)
-      sendToHubSpot(formData);
+      // Send to HubSpot only if form data exists (fire and forget)
+      if (formData) {
+        sendToHubSpot(formData);
+      }
 
-      // Generate PDF
+      // Generate PDF (formData is optional)
       generatePDF(formData);
     };
 
@@ -1395,9 +1400,34 @@
     const initPDFDownload = () => {
       console.log('Initializing PDF download functionality...');
       
-      // Open popup button
-      const openBtn = document.getElementById('calc-download-btn');
-      console.log('Open button found:', openBtn);
+      // Download button - for testing, directly generate PDF without form
+      const downloadBtn = document.getElementById('calc-download-btn');
+      console.log('Download button found:', downloadBtn);
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Download button clicked - generating PDF directly');
+          
+          // Check if popup exists - if yes, open it first, if no, generate PDF directly
+          const popup = document.getElementById('calc-download-popup');
+          if (popup) {
+            // Popup exists, open it first
+            popup.style.display = 'flex';
+            popup.classList.add('calc-popup-visible');
+            console.log('Popup opened');
+          } else {
+            // No popup, generate PDF directly
+            console.log('No popup found, generating PDF directly');
+            generatePDF(null);
+          }
+        });
+      } else {
+        console.warn('Download button not found! Make sure button has ID: calc-download-btn');
+      }
+      
+      // Open popup button (if different from download button)
+      const openBtn = document.getElementById('calc-popup-open');
       if (openBtn) {
         openBtn.addEventListener('click', (e) => {
           e.preventDefault();
@@ -1406,17 +1436,13 @@
           const popup = document.getElementById('calc-download-popup');
           console.log('Popup element:', popup);
           if (popup) {
-            // Try different display values
             popup.style.display = 'flex';
-            // Also try adding a class if needed
             popup.classList.add('calc-popup-visible');
             console.log('Popup should be visible now');
           } else {
             console.error('Popup element not found! Make sure ID is calc-download-popup');
           }
         });
-      } else {
-        console.warn('Open button not found! Make sure button has ID: calc-download-btn');
       }
 
       // Close popup button
