@@ -494,20 +494,28 @@
         );
 
         // Apply time-based multipliers to show progression
-        // Month 1: Higher percentage (less QueryPal effect, more original cost)
-        // Month 3: Medium percentage (partial QueryPal effect)
-        // Year 1: Lower percentage (full QueryPal effect, minimal original cost)
-        const month1Percent = Math.max(0, Math.min(100, year1BasePercent * 4.5)); // Much higher in early months
-        const month3Percent = Math.max(0, Math.min(100, year1BasePercent * 2.0)); // Medium
-        const year1Percent = Math.max(1, Math.min(99, year1BasePercent)); // Actual calculated value
+        // The percentage should decrease over time as QueryPal becomes more effective
+        // Month 1: Much higher percentage (QueryPal just starting, most cost is without QP)
+        // Month 3: Medium percentage (QueryPal partially effective)
+        // Year 1: Lower percentage (QueryPal fully effective, minimal cost without QP)
+        
+        // Ensure we don't exceed 100% or go below 1%
+        const year1Percent = Math.max(1, Math.min(99, Math.round(year1BasePercent)));
+        
+        // Month 3 should be between Month 1 and Year 1
+        // If Year 1 is very low (e.g., 1%), Month 3 should be higher but not 100%
+        const month3Percent = Math.max(year1Percent, Math.min(100, Math.round(year1BasePercent * 1.5)));
+        
+        // Month 1 should be the highest (closest to 100% but not 100%)
+        const month1Percent = Math.max(month3Percent, Math.min(99, Math.round(year1BasePercent * 3.0)));
 
-        updateDonut('month1', Math.round(month1Percent));
-        updateDonut('month3', Math.round(month3Percent));
-        updateDonut('year1', Math.round(year1Percent));
+        updateDonut('month1', month1Percent);
+        updateDonut('month3', month3Percent);
+        updateDonut('year1', year1Percent);
       } else {
         // Fallback: use deflection-based calculation
         // Show percentage of "Cost without QueryPal" which decreases as deflection increases
-      const d = Number(deflection) || 0;
+        const d = Number(deflection) || 0;
         // Higher deflection = lower percentage of "Cost without QueryPal"
         // Month 1: deflection is 25% of Month 3, so cost without is higher
         // Month 3: full deflection
@@ -667,7 +675,21 @@
       const salary = extractNumber(salaryEl);
       const ticketsPerMonth = extractNumber(ticketsEl);
       const deflection = extractNumber(deflectionEl);
-      const growth = growthRadios.length > 0 ? extractNumber(growthRadios[0]) || parseFloat(growthRadios[0].id.replace('calc-growth-', '')) || 0 : 0;
+      
+      // Get growth rate from checked radio button
+      let growth = 0;
+      if (growthRadios.length > 0) {
+        const checkedRadio = growthRadios[0];
+        // Try to get value from radio button value attribute, or from ID
+        growth = extractNumber(checkedRadio);
+        if (growth === 0 && checkedRadio.id) {
+          // Extract number from ID like "calc-growth-25"
+          const idMatch = checkedRadio.id.match(/calc-growth-(\d+)/);
+          if (idMatch) {
+            growth = parseFloat(idMatch[1]) || 0;
+          }
+        }
+      }
 
       return { agents, salary, ticketsPerMonth, deflection, growth };
     };
@@ -769,6 +791,28 @@
           ticketsPerMonth: year1.ticketsPerMonth,
         });
         console.log('Inputs:', results.inputs);
+      }
+
+      // Debug: Verify that growth rate is applied correctly
+      if (results.inputs.growth > 0) {
+        console.log('Growth rate applied:', {
+          growthRate: results.inputs.growth + '%',
+          year1: {
+            agents: year1.agents,
+            tickets: year1.totalYearlyTickets,
+            costWithout: year1.costWithoutQueryPal,
+          },
+          year2: {
+            agents: year2.agents,
+            tickets: year2.totalYearlyTickets,
+            costWithout: year2.costWithoutQueryPal,
+          },
+          year3: {
+            agents: year3.agents,
+            tickets: year3.totalYearlyTickets,
+            costWithout: year3.costWithoutQueryPal,
+          },
+        });
       }
 
       // Update headline savings
