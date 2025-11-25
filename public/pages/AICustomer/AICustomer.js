@@ -583,19 +583,6 @@
         year1CostWithout = 100 - year1CostWith;
       }
 
-      console.log('Updating donuts:', {
-        deflection: d,
-        month1Deflection,
-        month3Deflection,
-        year1Deflection,
-        month1CostWith: Math.round(month1CostWith),
-        month1CostWithout: Math.round(month1CostWithout),
-        month3CostWith: Math.round(month3CostWith),
-        month3CostWithout: Math.round(month3CostWithout),
-        year1CostWith: Math.round(year1CostWith),
-        year1CostWithout: Math.round(year1CostWithout),
-      });
-
       // Update donuts: segment is drawn using costWithoutPercent (right value, e.g., 3% for Year 1)
       // Left value shows costWithPercent, right value shows costWithoutPercent
       updateDonut('month1', Math.round(month1CostWith), Math.round(month1CostWithout));
@@ -863,44 +850,6 @@
 
       const { year1, year2, year3, totalSavings3Years } = results;
 
-      // Debug: Verify that Cost Without > Cost With (should always be true)
-      if (year1.costWithoutQueryPal <= year1.costWithQueryPal) {
-        console.warn('ROI Calculator: Cost Without should be greater than Cost With. Check formulas.');
-        console.log('Year 1:', {
-          costWithout: year1.costWithoutQueryPal,
-          costWith: year1.costWithQueryPal,
-          savings: year1.savings,
-          totalAgentSalaries: year1.totalAgentSalaries,
-          totalYearlyTickets: year1.totalYearlyTickets,
-          currentCostPerTicket: year1.currentCostPerTicket,
-          agents: year1.agents,
-          ticketsPerMonth: year1.ticketsPerMonth,
-        });
-        console.log('Inputs:', results.inputs);
-      }
-
-      // Debug: Verify that growth rate is applied correctly
-      if (results.inputs.growth > 0) {
-        console.log('Growth rate applied:', {
-          growthRate: results.inputs.growth + '%',
-          year1: {
-            agents: year1.agents,
-            tickets: year1.totalYearlyTickets,
-            costWithout: year1.costWithoutQueryPal,
-          },
-          year2: {
-            agents: year2.agents,
-            tickets: year2.totalYearlyTickets,
-            costWithout: year2.costWithoutQueryPal,
-          },
-          year3: {
-            agents: year3.agents,
-            tickets: year3.totalYearlyTickets,
-            costWithout: year3.costWithoutQueryPal,
-          },
-        });
-      }
-
       // Update headline savings
       const savingsYearEl = document.getElementById('calc-savings-year');
       const savings3YearEl = document.getElementById('calc-savings-3year');
@@ -1108,11 +1057,9 @@
         const radio = document.getElementById(radioId);
         if (radio) {
           radio.addEventListener('change', () => {
-            console.log('Growth rate changed:', radioId, radio.checked);
             recalculate();
           });
           radio.addEventListener('click', () => {
-            console.log('Growth rate clicked:', radioId, radio.checked);
             // Small delay to ensure radio is checked
             setTimeout(recalculate, 10);
           });
@@ -1122,14 +1069,12 @@
       // Also use event delegation on document level as fallback
       document.addEventListener('change', (e) => {
         if (e.target && e.target.id && e.target.id.startsWith('calc-growth-')) {
-          console.log('Growth rate changed via delegation:', e.target.id);
           recalculate();
         }
       });
       
       document.addEventListener('click', (e) => {
         if (e.target && e.target.id && e.target.id.startsWith('calc-growth-')) {
-          console.log('Growth rate clicked via delegation:', e.target.id);
           setTimeout(recalculate, 10);
         }
       });
