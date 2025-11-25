@@ -1230,8 +1230,8 @@
       });
     };
 
-    // Generate and download PDF
-    const generatePDF = async (formData) => {
+    // Generate and download PDF (formData is optional for testing)
+    const generatePDF = async (formData = null) => {
       console.log('generatePDF called with formData:', formData);
       try {
         // Collect calculator data
@@ -1246,6 +1246,9 @@
           body: calculatorData,
         };
 
+        console.log('Sending payload to n8n:', payload);
+        console.log('PDF webhook URL:', PDF_WEBHOOK_URL);
+
         // Show loading message
         const popup = document.getElementById('calc-download-popup');
         const submitBtn = document.getElementById('calc-form-submit-btn');
@@ -1257,6 +1260,7 @@
         }
 
         // Send to n8n for PDF generation
+        console.log('Fetching PDF from n8n...');
         const response = await fetch(PDF_WEBHOOK_URL, {
           method: 'POST',
           headers: {
@@ -1264,6 +1268,8 @@
           },
           body: JSON.stringify(payload),
         });
+
+        console.log('Response received:', response.status, response.statusText);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
