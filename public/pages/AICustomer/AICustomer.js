@@ -949,6 +949,55 @@
         year3.costWithQueryPal,
       );
 
+      // Update Y-axis labels dynamically based on max value
+      const updateYAxisLabels = (maxValue) => {
+        if (maxValue <= 0) {
+          // Default labels if no data
+          for (let i = 0; i <= 6; i++) {
+            const el = document.getElementById(`calc-y-axis-${i}`);
+            if (el) el.textContent = `$${i * 50}K`;
+          }
+          return;
+        }
+
+        // Round up to a "nice" number
+        // Examples: 1,314,000 -> 1,500,000; 2,053,125 -> 2,500,000; 500,000 -> 500,000
+        const magnitude = Math.pow(10, Math.floor(Math.log10(maxValue)));
+        const normalized = maxValue / magnitude;
+        let roundedNormalized;
+        
+        if (normalized <= 1) roundedNormalized = 1;
+        else if (normalized <= 1.5) roundedNormalized = 1.5;
+        else if (normalized <= 2) roundedNormalized = 2;
+        else if (normalized <= 2.5) roundedNormalized = 2.5;
+        else if (normalized <= 5) roundedNormalized = 5;
+        else roundedNormalized = 10;
+        
+        const roundedMax = roundedNormalized * magnitude;
+
+        // Calculate step (divide into 6 equal intervals for 7 labels)
+        const step = roundedMax / 6;
+
+        // Generate labels (7 labels: 0 to 6)
+        for (let i = 0; i <= 6; i++) {
+          const value = i * step;
+          const el = document.getElementById(`calc-y-axis-${i}`);
+          if (el) {
+            // Format: $0K, $250K, $500K, $1,000K, $1,500K, etc.
+            if (value === 0) {
+              el.textContent = '$0K';
+            } else {
+              // Always format in thousands (K)
+              const valueInK = Math.round(value / 1000);
+              el.textContent = `$${valueInK.toLocaleString('en-US')}K`;
+            }
+          }
+        }
+      };
+
+      // Update Y-axis labels
+      updateYAxisLabels(maxCost);
+
       // Update bar heights
       updateBarHeight('calc-bar-without-year1', year1.costWithoutQueryPal, maxCost);
       updateBarHeight('calc-bar-with-year1', year1.costWithQueryPal, maxCost);
