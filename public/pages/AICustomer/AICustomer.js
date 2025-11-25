@@ -503,12 +503,37 @@
       return (costWithoutQueryPal / totalCost) * 100;
     };
 
-    window.calcUpdateDonuts = (deflection, year1Data = null) => {
+    window.calcUpdateDonuts = (deflection, inputs = null) => {
       const d = Number(deflection) || 0;
       
-      // Get base inputs for calculation
-      const inputs = getInputs();
-      const { agents, salary, ticketsPerMonth } = inputs;
+      // Get inputs - either passed as parameter or read from DOM
+      let agents = 0;
+      let salary = 0;
+      let ticketsPerMonth = 0;
+      
+      if (inputs && inputs.agents && inputs.salary && inputs.ticketsPerMonth) {
+        agents = inputs.agents;
+        salary = inputs.salary;
+        ticketsPerMonth = inputs.ticketsPerMonth;
+      } else {
+        // Fallback: read from DOM
+        const agentsEl = document.getElementById('calc-agents-input');
+        const salaryEl = document.getElementById('calc-salary-input');
+        const ticketsEl = document.getElementById('calc-tickets-input');
+        
+        if (agentsEl) {
+          const text = agentsEl.value || agentsEl.textContent || agentsEl.innerText || '0';
+          agents = parseFloat(text.toString().replace(/[^0-9.-]/g, '')) || 0;
+        }
+        if (salaryEl) {
+          const text = salaryEl.value || salaryEl.textContent || salaryEl.innerText || '0';
+          salary = parseFloat(text.toString().replace(/[^0-9.-]/g, '')) || 0;
+        }
+        if (ticketsEl) {
+          const text = ticketsEl.value || ticketsEl.textContent || ticketsEl.innerText || '0';
+          ticketsPerMonth = parseFloat(text.toString().replace(/[^0-9.-]/g, '')) || 0;
+        }
+      }
       
       // Follow client's formula for deflection values:
       // Month 3 = deflection rate (e.g., 70%)
@@ -925,7 +950,8 @@
 
       // Update donut charts with deflection rate (following client's exact formula)
       if (window.calcUpdateDonuts && inputs.deflection !== undefined) {
-        window.calcUpdateDonuts(inputs.deflection);
+        // Pass inputs so donuts can calculate percentages based on real data
+        window.calcUpdateDonuts(inputs.deflection, inputs);
       } else {
         console.warn('calcUpdateDonuts not available or deflection not found');
       }
