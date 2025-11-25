@@ -1196,10 +1196,20 @@
         if (typeof window.calcRecalculate === 'function') {
           window.calcRecalculate();
           // Wait for calculation to complete (increased delay to ensure UI updates)
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 500));
           console.log('Recalculation completed');
+          console.log('window.calcLastResults after recalculation:', window.calcLastResults);
+          
+          // Verify that results were actually calculated
+          if (!window.calcLastResults || !window.calcLastResults.year1) {
+            console.error('ERROR: Results not found after recalculation!');
+            throw new Error('Calculator results not available. Please ensure all fields are filled correctly.');
+          }
         } else {
           console.warn('calcRecalculate function not available. Using existing results if available.');
+          if (!window.calcLastResults) {
+            throw new Error('Calculator has not been run. Please fill in the calculator first.');
+          }
         }
         
         // Collect calculator data
@@ -1218,6 +1228,7 @@
         }
 
         // Prepare payload for n8n
+        // n8n expects: $json.body.inputs and $json.body.results
         const payload = {
           body: calculatorData,
         };
@@ -1225,8 +1236,35 @@
         console.log('=== PDF GENERATION DEBUG ===');
         console.log('Calculator inputs:', calculatorData.inputs);
         console.log('Calculator results:', calculatorData.results);
-        console.log('Full payload:', JSON.stringify(payload, null, 2));
+        console.log('Full payload structure:', {
+          body: {
+            inputs: calculatorData.inputs,
+            results: calculatorData.results
+          }
+        });
+        console.log('Full payload JSON:', JSON.stringify(payload, null, 2));
         console.log('PDF webhook URL:', PDF_WEBHOOK_URL);
+        
+        // Validate data before sending
+        const hasNonZeroInputs = calculatorData.inputs.agents > 0 || 
+                                 calculatorData.inputs.salary > 0 || 
+                                 calculatorData.inputs.ticketsPerMonth > 0;
+        const hasNonZeroResults = calculatorData.results.savingsYear > 0 || 
+                                  calculatorData.results.costWithout?.year1 > 0;
+        
+        console.log('Data validation:', {
+          hasNonZeroInputs,
+          hasNonZeroResults,
+          inputs: calculatorData.inputs,
+          resultsSample: {
+            savingsYear: calculatorData.results.savingsYear,
+            costWithoutYear1: calculatorData.results.costWithout?.year1
+          }
+        });
+        
+        if (!hasNonZeroInputs && !hasNonZeroResults) {
+          console.error('WARNING: All data is zero! Check if calculator has been filled and calculated.');
+        }
 
         // Show loading message (optional - only if popup exists)
         const popup = document.getElementById('calc-download-popup');
