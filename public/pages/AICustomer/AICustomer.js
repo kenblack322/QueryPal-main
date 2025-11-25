@@ -862,9 +862,10 @@
       if (ticketsAIEl) ticketsAIEl.textContent = formatNumber(year1.ticketsSolvedByAI);
 
       // Update popup savings preview (if popup exists)
+      // Show total savings over 3 years as it's more impressive
       const popupSavingsEl = document.getElementById('calc-popup-savings-preview');
       if (popupSavingsEl) {
-        popupSavingsEl.textContent = formatCurrency(year1.savings);
+        popupSavingsEl.textContent = formatCurrency(totalSavings3Years);
       }
 
       // Update cost comparison for each year
