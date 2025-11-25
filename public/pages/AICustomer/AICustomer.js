@@ -1228,14 +1228,12 @@
         }
 
         // Prepare payload for n8n
-        // n8n webhook receives POST data in $json.body automatically
-        // But the Set node expects: $json.body.inputs and $json.body.results
-        // So we send: {body: {inputs: {...}, results: {...}}}
-        // This means in n8n: $json.body = {inputs: {...}, results: {...}}
-        // And then $json.body.inputs and $json.body.results will work
-        const payload = {
-          body: calculatorData,
-        };
+        // n8n webhook automatically wraps POST body in $json.body
+        // The Set node expects: $json.body.inputs and $json.body.results
+        // So we send data directly: {inputs: {...}, results: {...}}
+        // n8n will wrap it: $json.body = {inputs: {...}, results: {...}}
+        // Then $json.body.inputs and $json.body.results will work correctly
+        const payload = calculatorData;
 
         console.log('=== PDF GENERATION DEBUG ===');
         console.log('Calculator inputs:', calculatorData.inputs);
