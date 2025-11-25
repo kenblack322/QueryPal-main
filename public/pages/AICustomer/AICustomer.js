@@ -1161,7 +1161,7 @@
    * PDF Download Functionality
    * --------------------------------------------------------------------- */
   (() => {
-    const PDF_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook-test/7ad16972-c30c-46a5-9970-fdcbb0d4c916';
+    const PDF_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook/7ad16972-c30c-46a5-9970-fdcbb0d4c916';
     const HUBSPOT_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook-test/694308a2-dbf3-466e-bb17-aeba183a1488';
 
     // Collect calculator data for PDF
@@ -1321,14 +1321,47 @@
           body: JSON.stringify(payload),
         });
 
-        console.log('Response received:', response.status, response.statusText);
+        console.log('Response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers.get('content-type'),
+          ok: response.ok
+        });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          // Try to get error message from response
+          let errorMessage = `HTTP error! status: ${response.status}`;
+          try {
+            const errorText = await response.text();
+            console.error('Error response body:', errorText);
+            if (errorText) {
+              errorMessage += ` - ${errorText}`;
+            }
+          } catch (e) {
+            console.error('Could not read error response:', e);
+          }
+          throw new Error(errorMessage);
+        }
+
+        // Check content type
+        const contentType = response.headers.get('content-type');
+        console.log('Response content type:', contentType);
+        
+        if (contentType && !contentType.includes('application/pdf') && !contentType.includes('application/octet-stream')) {
+          console.warn('Warning: Response is not a PDF. Content type:', contentType);
+          // Still try to download, but log warning
         }
 
         // Get PDF blob
         const blob = await response.blob();
+        console.log('Blob received:', {
+          size: blob.size,
+          type: blob.type
+        });
+        
+        if (blob.size === 0) {
+          throw new Error('Received empty PDF file from server');
+        }
         
         // Create download link
         const url = window.URL.createObjectURL(blob);
@@ -1339,6 +1372,8 @@
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+        
+        console.log('PDF download initiated successfully');
 
         // Show success message (optional - only if popup exists)
         if (popup) {
@@ -1374,7 +1409,13 @@
         }, 1500);
 
       } catch (error) {
-        console.error('PDF generation error:', error);
+        console.error('=== PDF GENERATION ERROR ===');
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        console.error('Full error object:', error);
         
         // Show error message (optional - only if popup exists)
         const popup = document.getElementById('calc-download-popup');
@@ -1382,17 +1423,29 @@
         const downloadBtn = document.getElementById('calc-download-btn');
         const originalBtnText = submitBtn ? submitBtn.textContent : (downloadBtn ? downloadBtn.textContent : '');
         
+        // Create user-friendly error message
+        let errorMessage = 'An error occurred while downloading the file. Please try again later.';
+        if (error.message) {
+          if (error.message.includes('Calculator data not available')) {
+            errorMessage = 'Please fill in the calculator fields before downloading the report.';
+          } else if (error.message.includes('HTTP error')) {
+            errorMessage = 'Server error. Please try again in a few moments.';
+          } else if (error.message.includes('empty PDF')) {
+            errorMessage = 'The server returned an empty file. Please try again.';
+          }
+        }
+        
         if (popup) {
           const messageEl = popup.querySelector('.calc-download-message') || document.createElement('div');
           messageEl.className = 'calc-download-message';
-          messageEl.textContent = 'An error occurred while downloading the file. Please try again later.';
+          messageEl.textContent = errorMessage;
           messageEl.style.cssText = 'padding: 16px; background: #f8d7da; color: #721c24; border-radius: 8px; margin-top: 16px;';
           if (!popup.querySelector('.calc-download-message')) {
             popup.appendChild(messageEl);
           }
         } else {
           // If no popup, show alert
-          alert('An error occurred while downloading the file. Please try again later.');
+          alert(errorMessage);
         }
 
         // Re-enable buttons
