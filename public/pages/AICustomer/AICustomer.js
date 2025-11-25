@@ -459,11 +459,15 @@
       },
     };
 
-    const updateDonut = (key, percent) => {
+    const updateDonut = (key, costWithPercent) => {
       const donut = donuts[key];
       if (!donut || !donut.path) return;
 
-      donut.path.setAttributeNS(null, 'd', createArc(percent));
+      // Calculate "Cost without QueryPal" percentage (what should be displayed on the left and fill the donut)
+      const costWithoutPercent = Math.max(0, Math.min(100, 100 - costWithPercent));
+      
+      // The filled segment shows "Cost without QueryPal" percentage
+      donut.path.setAttributeNS(null, 'd', createArc(costWithoutPercent));
       donut.path.setAttributeNS(null, 'stroke', `url(#${donut.gradientId})`);
       donut.path.setAttributeNS(null, 'stroke-width', '50');
       donut.path.setAttributeNS(null, 'fill', 'none');
@@ -471,16 +475,17 @@
       donut.path.style.stroke = '';
       donut.path.style.fill = '';
 
-      if (donut.value) donut.value.textContent = `${percent}%`;
+      // Left value shows "Cost without QueryPal" (was on the right before)
+      if (donut.value) donut.value.textContent = `${Math.round(costWithoutPercent)}%`;
 
+      // Right value shows "Cost with QueryPal" (was on the left before)
       if (donut.rest) {
-        const rest = Math.max(0, Math.min(100, 100 - percent));
-        donut.rest.textContent = `${rest}%`;
+        donut.rest.textContent = `${Math.round(costWithPercent)}%`;
       }
     };
 
-    // Calculate savings percentage (how much QueryPal saves compared to Cost Without QueryPal)
-    const calculateSavingsPercentage = (deflectionValue, baseAgents, baseTicketsPerMonth, salary) => {
+    // Calculate "Cost with QueryPal" as percentage of total cost
+    const calculateCostWithPercentage = (deflectionValue, baseAgents, baseTicketsPerMonth, salary) => {
       // Apply deflection to calculate costs
       const totalYearlyTickets = baseTicketsPerMonth * MONTHS_PER_YEAR;
       const totalAgentSalaries = baseAgents * salary;
@@ -497,12 +502,12 @@
       // Cost Without QueryPal
       const costWithoutQueryPal = totalAgentSalaries;
       
-      // Calculate savings
-      const savings = costWithoutQueryPal - costWithQueryPal;
+      // Total cost (for reference, but we use Cost Without + Cost With for percentage)
+      const totalCost = costWithoutQueryPal + costWithQueryPal;
       
-      // Calculate savings percentage: (Savings / Cost Without QueryPal) × 100%
-      if (costWithoutQueryPal === 0) return 0;
-      return (savings / costWithoutQueryPal) * 100;
+      // Calculate "Cost with QueryPal" as percentage of total cost
+      if (totalCost === 0) return 0;
+      return (costWithQueryPal / totalCost) * 100;
     };
 
     window.calcUpdateDonuts = (deflection, inputs = null) => {
@@ -545,35 +550,36 @@
       const month1Deflection = Math.max(0, Math.min(100, Math.round(d * 0.25)));
       const year1Deflection = Math.min(Math.round(d * 2), 99);
       
-      // Calculate savings percentage for each period using their deflection values
-      // This shows how much QueryPal saves compared to Cost Without QueryPal
+      // Calculate "Cost with QueryPal" as percentage of total cost for each period
+      // This is what should be displayed in the donut chart (the filled segment)
       let month1Percent, month3Percent, year1Percent;
       
       if (agents && salary && ticketsPerMonth) {
-        // Calculate using actual inputs - percentage of savings
-        month3Percent = calculateSavingsPercentage(month3Deflection, agents, ticketsPerMonth, salary);
-        month1Percent = calculateSavingsPercentage(month1Deflection, agents, ticketsPerMonth, salary);
-        year1Percent = calculateSavingsPercentage(year1Deflection, agents, ticketsPerMonth, salary);
+        // Calculate using actual inputs - percentage of "Cost with QueryPal" from total cost
+        month3Percent = calculateCostWithPercentage(month3Deflection, agents, ticketsPerMonth, salary);
+        month1Percent = calculateCostWithPercentage(month1Deflection, agents, ticketsPerMonth, salary);
+        year1Percent = calculateCostWithPercentage(year1Deflection, agents, ticketsPerMonth, salary);
         
         // Ensure percentages are between 0 and 100
         month1Percent = Math.max(0, Math.min(100, month1Percent));
         month3Percent = Math.max(0, Math.min(100, month3Percent));
-        year1Percent = Math.max(0, Math.min(99, year1Percent)); // Year 1 capped at 99% per client
+        year1Percent = Math.max(0, Math.min(100, year1Percent));
       } else {
-        // Fallback: use deflection as approximation of savings percentage
+        // Fallback: use deflection as approximation
+        // Note: This is just a fallback, real calculation is preferred
         month3Percent = Math.max(0, Math.min(100, month3Deflection));
         month1Percent = Math.max(0, Math.min(100, month1Deflection));
-        year1Percent = Math.max(0, Math.min(99, year1Deflection));
+        year1Percent = Math.max(0, Math.min(100, year1Deflection));
       }
 
-      console.log('Updating donuts (savings percentage):', {
+      console.log('Updating donuts (Cost with QueryPal percentage):', {
         deflection: d,
         month1Deflection,
         month3Deflection,
         year1Deflection,
-        month1SavingsPercent: Math.round(month1Percent),
-        month3SavingsPercent: Math.round(month3Percent),
-        year1SavingsPercent: Math.round(year1Percent),
+        month1CostWithPercent: Math.round(month1Percent),
+        month3CostWithPercent: Math.round(month3Percent),
+        year1CostWithPercent: Math.round(year1Percent),
       });
 
       updateDonut('month1', Math.round(month1Percent));
