@@ -638,27 +638,30 @@
       const ticketsPerMonth = baseTicketsPerMonth * growthMultiplier;
       const totalYearlyTickets = ticketsPerMonth * MONTHS_PER_YEAR;
 
+      // Step 1: Total Yearly Tickets (already calculated above)
       // Step 2: Current Cost Per Ticket
       const totalAgentSalaries = agents * salary;
       const currentCostPerTicket = totalYearlyTickets > 0 ? totalAgentSalaries / totalYearlyTickets : 0;
 
       // Step 3: Cost With QueryPal
-      const deflectionDecimal = deflection / 100;
+      const deflectionDecimal = Math.max(0, Math.min(100, deflection)) / 100; // Clamp between 0-100
       const remainingDecimal = 1 - deflectionDecimal;
 
-      // Part 1: QueryPal Cost
+      // Part 1: QueryPal Cost (tickets handled by QueryPal at $1 per ticket)
       const queryPalCost = totalYearlyTickets * deflectionDecimal * QUERYPAL_PRICE_PER_TICKET;
 
-      // Part 2: Human Cost
+      // Part 2: Human Cost (remaining tickets handled by agents)
       const humanCost = totalYearlyTickets * remainingDecimal * currentCostPerTicket;
 
       // Total Cost With QueryPal
       const costWithQueryPal = queryPalCost + humanCost;
 
-      // Step 4: Cost Without QueryPal
+      // Step 4: Cost Without QueryPal (all tickets handled by agents)
+      // This should equal totalAgentSalaries (all tickets handled by agents at current cost)
       const costWithoutQueryPal = totalYearlyTickets * currentCostPerTicket;
 
       // Step 5: ROI (Savings)
+      // Cost Without should ALWAYS be greater than Cost With (because QueryPal is cheaper per ticket)
       const savings = costWithoutQueryPal - costWithQueryPal;
 
       // Tickets solved by AI
@@ -707,6 +710,16 @@
       if (!results) return;
 
       const { year1, year2, year3, totalSavings3Years } = results;
+
+      // Debug: Verify that Cost Without > Cost With (should always be true)
+      if (year1.costWithoutQueryPal <= year1.costWithQueryPal) {
+        console.warn('ROI Calculator: Cost Without should be greater than Cost With. Check formulas.');
+        console.log('Year 1:', {
+          costWithout: year1.costWithoutQueryPal,
+          costWith: year1.costWithQueryPal,
+          savings: year1.savings,
+        });
+      }
 
       // Update headline savings
       const savingsYearEl = document.getElementById('calc-savings-year');
