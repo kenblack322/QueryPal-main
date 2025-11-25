@@ -1295,7 +1295,7 @@
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
 
-        // Show success message
+        // Show success message (optional - only if popup exists)
         if (popup) {
           const messageEl = popup.querySelector('.calc-download-message') || document.createElement('div');
           messageEl.className = 'calc-download-message';
@@ -1306,7 +1306,7 @@
           }
         }
 
-        // Close popup after short delay
+        // Close popup after short delay (if exists)
         setTimeout(() => {
           if (popup) {
             popup.style.display = 'none';
@@ -1317,19 +1317,25 @@
             const messageEl = popup.querySelector('.calc-download-message');
             if (messageEl) messageEl.remove();
           }
+          // Re-enable buttons
           if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = originalBtnText;
+          }
+          if (downloadBtn) {
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = downloadBtn.dataset.originalText || originalBtnText;
           }
         }, 1500);
 
       } catch (error) {
         console.error('PDF generation error:', error);
         
-        // Show error message
+        // Show error message (optional - only if popup exists)
         const popup = document.getElementById('calc-download-popup');
         const submitBtn = document.getElementById('calc-form-submit-btn');
-        const originalBtnText = submitBtn ? submitBtn.textContent : '';
+        const downloadBtn = document.getElementById('calc-download-btn');
+        const originalBtnText = submitBtn ? submitBtn.textContent : (downloadBtn ? downloadBtn.textContent : '');
         
         if (popup) {
           const messageEl = popup.querySelector('.calc-download-message') || document.createElement('div');
@@ -1339,11 +1345,19 @@
           if (!popup.querySelector('.calc-download-message')) {
             popup.appendChild(messageEl);
           }
+        } else {
+          // If no popup, show alert
+          alert('An error occurred while downloading the file. Please try again later.');
         }
 
+        // Re-enable buttons
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = originalBtnText;
+        }
+        if (downloadBtn) {
+          downloadBtn.disabled = false;
+          downloadBtn.textContent = downloadBtn.dataset.originalText || originalBtnText;
         }
       }
     };
