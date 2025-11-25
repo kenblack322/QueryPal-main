@@ -861,6 +861,12 @@
       if (roiEl) roiEl.textContent = formatCurrency(year1.savings); // ROI is always dollar amount
       if (ticketsAIEl) ticketsAIEl.textContent = formatNumber(year1.ticketsSolvedByAI);
 
+      // Update popup savings preview (if popup exists)
+      const popupSavingsEl = document.getElementById('calc-popup-savings-preview');
+      if (popupSavingsEl) {
+        popupSavingsEl.textContent = formatCurrency(year1.savings);
+      }
+
       // Update cost comparison for each year
       const updateCostElement = (id, value) => {
         const el = document.getElementById(id);
