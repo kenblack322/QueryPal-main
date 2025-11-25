@@ -552,7 +552,7 @@
       const month3Deflection = Math.max(0, Math.min(100, Math.round(d)));
       const month1Deflection = Math.max(0, Math.min(100, Math.round(d * 0.25)));
       const year1Deflection = Math.min(Math.round(d * 2), 99);
-      
+
       // Calculate percentages for each period
       let month1CostWith, month3CostWith, year1CostWith;
       let month1CostWithout, month3CostWithout, year1CostWithout;
@@ -940,7 +940,7 @@
       };
 
       // Find max cost for scaling
-      const maxCost = Math.max(
+      const actualMaxCost = Math.max(
         year1.costWithoutQueryPal,
         year2.costWithoutQueryPal,
         year3.costWithoutQueryPal,
@@ -949,9 +949,47 @@
         year3.costWithQueryPal,
       );
 
-      // Update Y-axis labels dynamically based on max value
+      // Round DOWN to a "nice" number that is LESS than the maximum
+      // This ensures the top label is below the maximum value
+      // Examples: 2,053,125 -> 2,000,000; 1,314,000 -> 1,200,000; 500,000 -> 500,000
+      const calculateRoundedMax = (maxValue) => {
+        if (maxValue <= 0) return 100000; // Default fallback
+        
+        const magnitude = Math.pow(10, Math.floor(Math.log10(maxValue)));
+        const normalized = maxValue / magnitude;
+        let roundedNormalized;
+        
+        // Round DOWN to nearest "nice" number
+        if (normalized <= 1) roundedNormalized = 1;
+        else if (normalized <= 1.5) roundedNormalized = 1;
+        else if (normalized <= 2) roundedNormalized = 1.5;
+        else if (normalized <= 2.5) roundedNormalized = 2;
+        else if (normalized <= 5) roundedNormalized = 2.5;
+        else if (normalized <= 10) roundedNormalized = 5;
+        else roundedNormalized = 10;
+        
+        let roundedMax = roundedNormalized * magnitude;
+        
+        // Ensure roundedMax is LESS than maxValue (if not, go one step down)
+        if (roundedMax >= maxValue) {
+          // Find the next lower "nice" number
+          if (roundedNormalized === 1) roundedNormalized = 0.5;
+          else if (roundedNormalized === 1.5) roundedNormalized = 1;
+          else if (roundedNormalized === 2) roundedNormalized = 1.5;
+          else if (roundedNormalized === 2.5) roundedNormalized = 2;
+          else if (roundedNormalized === 5) roundedNormalized = 2.5;
+          else if (roundedNormalized === 10) roundedNormalized = 5;
+          roundedMax = roundedNormalized * magnitude;
+        }
+        
+        return roundedMax;
+      };
+
+      const roundedMaxCost = calculateRoundedMax(actualMaxCost);
+
+      // Update Y-axis labels dynamically based on rounded max value
       // Supports labels on both left and right sides
-      const updateYAxisLabels = (maxValue) => {
+      const updateYAxisLabels = (roundedMax) => {
         // Format label value
         const formatLabel = (value) => {
           if (value === 0) {
@@ -969,7 +1007,7 @@
           if (el) el.textContent = formatLabel(value);
         };
 
-        if (maxValue <= 0) {
+        if (roundedMax <= 0) {
           // Default labels if no data
           for (let i = 0; i <= 6; i++) {
             const defaultValue = i * 50 * 1000; // $0K, $50K, $100K, etc.
@@ -978,21 +1016,6 @@
           }
           return;
         }
-
-        // Round up to a "nice" number
-        // Examples: 1,314,000 -> 1,500,000; 2,053,125 -> 2,500,000; 500,000 -> 500,000
-        const magnitude = Math.pow(10, Math.floor(Math.log10(maxValue)));
-        const normalized = maxValue / magnitude;
-        let roundedNormalized;
-        
-        if (normalized <= 1) roundedNormalized = 1;
-        else if (normalized <= 1.5) roundedNormalized = 1.5;
-        else if (normalized <= 2) roundedNormalized = 2;
-        else if (normalized <= 2.5) roundedNormalized = 2.5;
-        else if (normalized <= 5) roundedNormalized = 5;
-        else roundedNormalized = 10;
-        
-        const roundedMax = roundedNormalized * magnitude;
 
         // Calculate step (divide into 6 equal intervals for 7 labels)
         const step = roundedMax / 6;
@@ -1005,16 +1028,17 @@
         }
       };
 
-      // Update Y-axis labels
-      updateYAxisLabels(maxCost);
+      // Update Y-axis labels using rounded max (which is LESS than actual max)
+      updateYAxisLabels(roundedMaxCost);
 
-      // Update bar heights
-      updateBarHeight('calc-bar-without-year1', year1.costWithoutQueryPal, maxCost);
-      updateBarHeight('calc-bar-with-year1', year1.costWithQueryPal, maxCost);
-      updateBarHeight('calc-bar-without-year2', year2.costWithoutQueryPal, maxCost);
-      updateBarHeight('calc-bar-with-year2', year2.costWithQueryPal, maxCost);
-      updateBarHeight('calc-bar-without-year3', year3.costWithoutQueryPal, maxCost);
-      updateBarHeight('calc-bar-with-year3', year3.costWithQueryPal, maxCost);
+      // Update bar heights using the SAME rounded max value for consistency
+      // This ensures bars align correctly with Y-axis labels
+      updateBarHeight('calc-bar-without-year1', year1.costWithoutQueryPal, roundedMaxCost);
+      updateBarHeight('calc-bar-with-year1', year1.costWithQueryPal, roundedMaxCost);
+      updateBarHeight('calc-bar-without-year2', year2.costWithoutQueryPal, roundedMaxCost);
+      updateBarHeight('calc-bar-with-year2', year2.costWithQueryPal, roundedMaxCost);
+      updateBarHeight('calc-bar-without-year3', year3.costWithoutQueryPal, roundedMaxCost);
+      updateBarHeight('calc-bar-with-year3', year3.costWithQueryPal, roundedMaxCost);
     };
 
     // Recalculate and update
