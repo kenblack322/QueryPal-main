@@ -1163,11 +1163,20 @@
 
     // Collect calculator data for PDF
     const collectCalculatorData = () => {
+      console.log('Collecting calculator data...');
       const inputs = window.calcGetInputs ? window.calcGetInputs() : null;
       const results = window.calcGetResults ? window.calcGetResults() : null;
 
+      console.log('Calculator inputs:', inputs);
+      console.log('Calculator results:', results);
+
       if (!inputs || !results) {
         console.error('Calculator data not available');
+        console.log('Available window functions:', {
+          calcGetInputs: typeof window.calcGetInputs,
+          calcGetResults: typeof window.calcGetResults,
+          calcLastResults: window.calcLastResults,
+        });
         return null;
       }
 
@@ -1223,9 +1232,11 @@
 
     // Generate and download PDF
     const generatePDF = async (formData) => {
+      console.log('generatePDF called with formData:', formData);
       try {
         // Collect calculator data
         const calculatorData = collectCalculatorData();
+        console.log('Collected calculator data:', calculatorData);
         if (!calculatorData) {
           throw new Error('Calculator data not available');
         }
@@ -1326,19 +1337,28 @@
 
     // Handle form submission
     const handleFormSubmit = (e) => {
-      e.preventDefault();
+      console.log('handleFormSubmit called');
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
 
       const firstNameEl = document.getElementById('calc-form-first-name');
       const emailEl = document.getElementById('calc-form-email');
       const companyEl = document.getElementById('calc-form-company');
 
+      console.log('Form elements:', { firstNameEl, emailEl, companyEl });
+
       const firstName = firstNameEl ? firstNameEl.value.trim() : '';
       const email = emailEl ? emailEl.value.trim() : '';
       const company = companyEl ? companyEl.value.trim() : '';
 
+      console.log('Form values:', { firstName, email, company });
+
       // Basic validation (Webflow should handle this, but double-check)
       if (!firstName || !email) {
         console.warn('First name and email are required');
+        alert('Please fill in First Name and Email fields');
         return;
       }
 
@@ -1346,6 +1366,7 @@
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         console.warn('Invalid email format');
+        alert('Please enter a valid email address');
         return;
       }
 
@@ -1354,6 +1375,8 @@
         email,
         company,
       };
+
+      console.log('Form data validated, proceeding with PDF generation');
 
       // Send to HubSpot (fire and forget)
       sendToHubSpot(formData);
