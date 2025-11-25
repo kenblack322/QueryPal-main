@@ -1249,14 +1249,21 @@
         console.log('Sending payload to n8n:', payload);
         console.log('PDF webhook URL:', PDF_WEBHOOK_URL);
 
-        // Show loading message
+        // Show loading message (optional - only if popup exists)
         const popup = document.getElementById('calc-download-popup');
         const submitBtn = document.getElementById('calc-form-submit-btn');
-        const originalBtnText = submitBtn ? submitBtn.textContent : '';
+        const downloadBtn = document.getElementById('calc-download-btn');
+        const originalBtnText = submitBtn ? submitBtn.textContent : (downloadBtn ? downloadBtn.textContent : '');
         
+        // Disable button and show loading state
         if (submitBtn) {
           submitBtn.disabled = true;
           submitBtn.textContent = 'Generating PDF...';
+        } else if (downloadBtn) {
+          downloadBtn.disabled = true;
+          const originalDownloadText = downloadBtn.textContent;
+          downloadBtn.textContent = 'Generating PDF...';
+          downloadBtn.dataset.originalText = originalDownloadText;
         }
 
         // Send to n8n for PDF generation
@@ -1476,7 +1483,7 @@
           console.warn('Form not found in popup!');
         }
 
-        // Alternative: submit button click
+        // Alternative: submit button click (form is optional)
         const submitBtn = document.getElementById('calc-form-submit-btn');
         console.log('Submit button found:', submitBtn);
         if (submitBtn) {
@@ -1484,22 +1491,8 @@
             e.preventDefault();
             e.stopPropagation();
             console.log('Submit button clicked');
-            const form = document.getElementById('calc-download-popup')?.querySelector('form');
-            if (form) {
-              handleFormSubmit(e);
-            } else {
-              // Try to submit without form
-              console.log('No form found, trying direct submission');
-              const firstNameEl = document.getElementById('calc-form-first-name');
-              const emailEl = document.getElementById('calc-form-email');
-              const companyEl = document.getElementById('calc-form-company');
-              
-              if (firstNameEl && emailEl) {
-                handleFormSubmit(e);
-              } else {
-                console.error('Form fields not found!');
-              }
-            }
+            // Try to handle form submission (form is optional)
+            handleFormSubmit(e);
           });
         } else {
           console.warn('Submit button not found! Make sure button has ID: calc-form-submit-btn');
