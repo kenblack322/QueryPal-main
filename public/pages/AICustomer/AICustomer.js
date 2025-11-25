@@ -1053,6 +1053,9 @@
         return;
       }
       
+      // Store results globally for PDF download access
+      window.calcLastResults = results;
+      
       console.log('Results calculated:', {
         year1: { costWithout: results.year1.costWithoutQueryPal, costWith: results.year1.costWithQueryPal },
         year2: { costWithout: results.year2.costWithoutQueryPal, costWith: results.year2.costWithQueryPal },
@@ -1148,6 +1151,362 @@
       document.addEventListener('DOMContentLoaded', initCalculator);
     } else {
       initCalculator();
+    }
+  })();
+
+  /* ------------------------------------------------------------------------
+   * PDF Download Functionality
+   * --------------------------------------------------------------------- */
+  (() => {
+    const PDF_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook-test/7ad16972-c30c-46a5-9970-fdcbb0d4c916';
+    const HUBSPOT_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook-test/694308a2-dbf3-466e-bb17-aeba183a1488';
+
+    // Collect calculator data for PDF
+    const collectCalculatorData = () => {
+      const inputs = window.calcGetInputs ? window.calcGetInputs() : null;
+      const results = window.calcGetResults ? window.calcGetResults() : null;
+
+      if (!inputs || !results) {
+        console.error('Calculator data not available');
+        return null;
+      }
+
+      // Format data according to n8n workflow structure
+      return {
+        inputs: {
+          agents: inputs.agents || 0,
+          salary: inputs.salary || 0,
+          ticketsPerMonth: inputs.ticketsPerMonth || 0,
+          deflection: inputs.deflection || 0,
+          growth: inputs.growth || 0,
+        },
+        results: {
+          savingsYear: results.year1?.savings || 0,
+          savingsThreeYears: results.totalSavings3Years || 0,
+          roiPercent: results.year1?.savings ? (results.year1.savings / results.year1.costWithoutQueryPal) * 100 : 0,
+          costWithout: {
+            year1: results.year1?.costWithoutQueryPal || 0,
+            year2: results.year2?.costWithoutQueryPal || 0,
+            year3: results.year3?.costWithoutQueryPal || 0,
+          },
+          costWith: {
+            year1: results.year1?.costWithQueryPal || 0,
+            year2: results.year2?.costWithQueryPal || 0,
+            year3: results.year3?.costWithQueryPal || 0,
+          },
+          ticketsSolved: {
+            year1: results.year1?.ticketsSolvedByAI || 0,
+            year2: results.year2?.ticketsSolvedByAI || 0,
+            year3: results.year3?.ticketsSolvedByAI || 0,
+          },
+        },
+      };
+    };
+
+    // Send data to HubSpot (fire and forget, no error handling)
+    const sendToHubSpot = (formData) => {
+      fetch(HUBSPOT_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          email: formData.email,
+          company: formData.company || '',
+        }),
+      }).catch((error) => {
+        // Silently fail - user doesn't need to know
+        console.warn('HubSpot submission failed:', error);
+      });
+    };
+
+    // Generate and download PDF
+    const generatePDF = async (formData) => {
+      try {
+        // Collect calculator data
+        const calculatorData = collectCalculatorData();
+        if (!calculatorData) {
+          throw new Error('Calculator data not available');
+        }
+
+        // Prepare payload for n8n
+        const payload = {
+          body: calculatorData,
+        };
+
+        // Show loading message
+        const popup = document.getElementById('calc-download-popup');
+        const submitBtn = document.getElementById('calc-form-submit-btn');
+        const originalBtnText = submitBtn ? submitBtn.textContent : '';
+        
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Generating PDF...';
+        }
+
+        // Send to n8n for PDF generation
+        const response = await fetch(PDF_WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Get PDF blob
+        const blob = await response.blob();
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `QueryPal-ROI-Report-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        // Show success message
+        if (popup) {
+          const messageEl = popup.querySelector('.calc-download-message') || document.createElement('div');
+          messageEl.className = 'calc-download-message';
+          messageEl.textContent = 'Your download will start shortly...';
+          messageEl.style.cssText = 'padding: 16px; background: #d4edda; color: #155724; border-radius: 8px; margin-top: 16px;';
+          if (!popup.querySelector('.calc-download-message')) {
+            popup.appendChild(messageEl);
+          }
+        }
+
+        // Close popup after short delay
+        setTimeout(() => {
+          if (popup) {
+            popup.style.display = 'none';
+            // Reset form
+            const form = popup.querySelector('form');
+            if (form) form.reset();
+            // Remove message
+            const messageEl = popup.querySelector('.calc-download-message');
+            if (messageEl) messageEl.remove();
+          }
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+          }
+        }, 1500);
+
+      } catch (error) {
+        console.error('PDF generation error:', error);
+        
+        // Show error message
+        const popup = document.getElementById('calc-download-popup');
+        const submitBtn = document.getElementById('calc-form-submit-btn');
+        const originalBtnText = submitBtn ? submitBtn.textContent : '';
+        
+        if (popup) {
+          const messageEl = popup.querySelector('.calc-download-message') || document.createElement('div');
+          messageEl.className = 'calc-download-message';
+          messageEl.textContent = 'An error occurred while downloading the file. Please try again later.';
+          messageEl.style.cssText = 'padding: 16px; background: #f8d7da; color: #721c24; border-radius: 8px; margin-top: 16px;';
+          if (!popup.querySelector('.calc-download-message')) {
+            popup.appendChild(messageEl);
+          }
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+        }
+      }
+    };
+
+    // Handle form submission
+    const handleFormSubmit = (e) => {
+      e.preventDefault();
+
+      const firstNameEl = document.getElementById('calc-form-first-name');
+      const emailEl = document.getElementById('calc-form-email');
+      const companyEl = document.getElementById('calc-form-company');
+
+      const firstName = firstNameEl ? firstNameEl.value.trim() : '';
+      const email = emailEl ? emailEl.value.trim() : '';
+      const company = companyEl ? companyEl.value.trim() : '';
+
+      // Basic validation (Webflow should handle this, but double-check)
+      if (!firstName || !email) {
+        console.warn('First name and email are required');
+        return;
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        console.warn('Invalid email format');
+        return;
+      }
+
+      const formData = {
+        firstName,
+        email,
+        company,
+      };
+
+      // Send to HubSpot (fire and forget)
+      sendToHubSpot(formData);
+
+      // Generate PDF
+      generatePDF(formData);
+    };
+
+    // Initialize PDF download functionality
+    const initPDFDownload = () => {
+      console.log('Initializing PDF download functionality...');
+      
+      // Open popup button
+      const openBtn = document.getElementById('calc-download-btn');
+      console.log('Open button found:', openBtn);
+      if (openBtn) {
+        openBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Open button clicked');
+          const popup = document.getElementById('calc-download-popup');
+          console.log('Popup element:', popup);
+          if (popup) {
+            // Try different display values
+            popup.style.display = 'flex';
+            // Also try adding a class if needed
+            popup.classList.add('calc-popup-visible');
+            console.log('Popup should be visible now');
+          } else {
+            console.error('Popup element not found! Make sure ID is calc-download-popup');
+          }
+        });
+      } else {
+        console.warn('Open button not found! Make sure button has ID: calc-download-btn');
+      }
+
+      // Close popup button
+      const closeBtn = document.getElementById('calc-popup-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          const popup = document.getElementById('calc-download-popup');
+          if (popup) {
+            popup.style.display = 'none';
+            popup.classList.remove('calc-popup-visible');
+            // Reset form
+            const form = popup.querySelector('form');
+            if (form) form.reset();
+            // Remove messages
+            const messageEl = popup.querySelector('.calc-download-message');
+            if (messageEl) messageEl.remove();
+          }
+        });
+      }
+
+      // Form submission - wait a bit for form to be available
+      setTimeout(() => {
+        const form = document.getElementById('calc-download-popup')?.querySelector('form');
+        console.log('Form found:', form);
+        if (form) {
+          form.addEventListener('submit', (e) => {
+            console.log('Form submitted');
+            handleFormSubmit(e);
+          });
+        } else {
+          console.warn('Form not found in popup!');
+        }
+
+        // Alternative: submit button click
+        const submitBtn = document.getElementById('calc-form-submit-btn');
+        console.log('Submit button found:', submitBtn);
+        if (submitBtn) {
+          submitBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Submit button clicked');
+            const form = document.getElementById('calc-download-popup')?.querySelector('form');
+            if (form) {
+              handleFormSubmit(e);
+            } else {
+              // Try to submit without form
+              console.log('No form found, trying direct submission');
+              const firstNameEl = document.getElementById('calc-form-first-name');
+              const emailEl = document.getElementById('calc-form-email');
+              const companyEl = document.getElementById('calc-form-company');
+              
+              if (firstNameEl && emailEl) {
+                handleFormSubmit(e);
+              } else {
+                console.error('Form fields not found!');
+              }
+            }
+          });
+        } else {
+          console.warn('Submit button not found! Make sure button has ID: calc-form-submit-btn');
+        }
+
+        // Hide Webflow form button if it exists
+        const webflowSubmitBtn = document.querySelector('#calc-download-popup form [type="submit"]');
+        if (webflowSubmitBtn && webflowSubmitBtn !== submitBtn) {
+          webflowSubmitBtn.style.display = 'none';
+          console.log('Webflow submit button hidden');
+        }
+      }, 500);
+    };
+
+    // Expose functions to global scope for calculator access
+    window.calcGetInputs = () => {
+      // Access inputs from ROI calculator
+      const agentsEl = document.getElementById('calc-agents-input');
+      const salaryEl = document.getElementById('calc-salary-input');
+      const ticketsEl = document.getElementById('calc-tickets-input');
+      const deflectionEl = document.getElementById('calc-deflection-output');
+      
+      const extractNumber = (element) => {
+        if (!element) return 0;
+        const text = element.value || element.textContent || element.innerText || '0';
+        const cleaned = text.toString().replace(/[^0-9.-]/g, '');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+      };
+
+      const agents = extractNumber(agentsEl);
+      const salary = extractNumber(salaryEl);
+      const ticketsPerMonth = extractNumber(ticketsEl);
+      const deflection = extractNumber(deflectionEl);
+      
+      // Get growth rate
+      let growth = 0;
+      const growthRadioIds = ['calc-growth-0', 'calc-growth-25', 'calc-growth-50', 'calc-growth-75', 'calc-growth-100'];
+      for (const radioId of growthRadioIds) {
+        const radio = document.getElementById(radioId);
+        if (radio && radio.checked) {
+          const idMatch = radioId.match(/calc-growth-(\d+)/);
+          if (idMatch) {
+            growth = parseFloat(idMatch[1]) || 0;
+            break;
+          }
+        }
+      }
+
+      return { agents, salary, ticketsPerMonth, deflection, growth };
+    };
+
+    window.calcGetResults = () => {
+      // This will be set by the calculator after calculation
+      return window.calcLastResults || null;
+    };
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initPDFDownload);
+    } else {
+      initPDFDownload();
     }
   })();
 })();
