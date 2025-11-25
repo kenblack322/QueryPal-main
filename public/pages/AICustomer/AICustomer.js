@@ -1063,6 +1063,9 @@
       });
       
       updateUI(results);
+      
+      // Export recalculate function for PDF module
+      window.calcRecalculate = recalculate;
 
       // Update donut charts with deflection rate (following client's exact formula)
       if (window.calcUpdateDonuts && inputs.deflection !== undefined) {
@@ -1163,25 +1166,38 @@
 
     // Collect calculator data for PDF
     const collectCalculatorData = () => {
-      console.log('Collecting calculator data...');
-      const inputs = window.calcGetInputs ? window.calcGetInputs() : null;
-      const results = window.calcGetResults ? window.calcGetResults() : null;
+      console.log('=== COLLECTING CALCULATOR DATA ===');
+      
+      // Check if functions exist
+      if (!window.calcGetInputs) {
+        console.error('window.calcGetInputs is not available!');
+        return null;
+      }
+      if (!window.calcGetResults) {
+        console.error('window.calcGetResults is not available!');
+        return null;
+      }
+      
+      const inputs = window.calcGetInputs();
+      const results = window.calcGetResults();
 
-      console.log('Calculator inputs:', inputs);
-      console.log('Calculator results:', results);
+      console.log('Raw inputs from DOM:', inputs);
+      console.log('Raw results from calcLastResults:', results);
+      console.log('window.calcLastResults:', window.calcLastResults);
 
-      if (!inputs || !results) {
-        console.error('Calculator data not available');
-        console.log('Available window functions:', {
-          calcGetInputs: typeof window.calcGetInputs,
-          calcGetResults: typeof window.calcGetResults,
-          calcLastResults: window.calcLastResults,
-        });
+      if (!inputs) {
+        console.error('Inputs are null or undefined');
+        return null;
+      }
+      
+      if (!results) {
+        console.error('Results are null or undefined');
+        console.error('Make sure calculator has been run at least once!');
         return null;
       }
 
       // Format data according to n8n workflow structure
-      return {
+      const formattedData = {
         inputs: {
           agents: inputs.agents || 0,
           salary: inputs.salary || 0,
@@ -1192,7 +1208,9 @@
         results: {
           savingsYear: results.year1?.savings || 0,
           savingsThreeYears: results.totalSavings3Years || 0,
-          roiPercent: results.year1?.savings ? (results.year1.savings / results.year1.costWithoutQueryPal) * 100 : 0,
+          roiPercent: results.year1?.savings && results.year1?.costWithoutQueryPal 
+            ? (results.year1.savings / results.year1.costWithoutQueryPal) * 100 
+            : 0,
           costWithout: {
             year1: results.year1?.costWithoutQueryPal || 0,
             year2: results.year2?.costWithoutQueryPal || 0,
@@ -1210,6 +1228,11 @@
           },
         },
       };
+      
+      console.log('Formatted data for n8n:', formattedData);
+      console.log('=== END DATA COLLECTION ===');
+      
+      return formattedData;
     };
 
     // Send data to HubSpot (fire and forget, no error handling)
@@ -1234,11 +1257,30 @@
     const generatePDF = async (formData = null) => {
       console.log('generatePDF called with formData:', formData);
       try {
+        // ALWAYS trigger recalculation to ensure data is up-to-date
+        console.log('Triggering calculator recalculation to ensure fresh data...');
+        if (typeof window.calcRecalculate === 'function') {
+          window.calcRecalculate();
+          // Wait for calculation to complete (increased delay to ensure UI updates)
+          await new Promise(resolve => setTimeout(resolve, 300));
+          console.log('Recalculation completed');
+        } else {
+          console.warn('calcRecalculate function not available. Using existing results if available.');
+        }
+        
         // Collect calculator data
         const calculatorData = collectCalculatorData();
         console.log('Collected calculator data:', calculatorData);
         if (!calculatorData) {
-          throw new Error('Calculator data not available');
+          throw new Error('Calculator data not available. Please fill in the calculator and try again.');
+        }
+        
+        // Validate that data is not all zeros
+        const hasValidData = calculatorData.inputs.agents > 0 || 
+                            calculatorData.inputs.salary > 0 || 
+                            calculatorData.results.savingsYear > 0;
+        if (!hasValidData) {
+          console.warn('Warning: Calculator data appears to be empty or zero. PDF will be generated with zero values.');
         }
 
         // Prepare payload for n8n
@@ -1246,7 +1288,10 @@
           body: calculatorData,
         };
 
-        console.log('Sending payload to n8n:', payload);
+        console.log('=== PDF GENERATION DEBUG ===');
+        console.log('Calculator inputs:', calculatorData.inputs);
+        console.log('Calculator results:', calculatorData.results);
+        console.log('Full payload:', JSON.stringify(payload, null, 2));
         console.log('PDF webhook URL:', PDF_WEBHOOK_URL);
 
         // Show loading message (optional - only if popup exists)
