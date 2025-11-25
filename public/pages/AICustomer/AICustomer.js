@@ -507,7 +507,7 @@
       } else {
         // Fallback: use deflection-based calculation
         // Show percentage of "Cost without QueryPal" which decreases as deflection increases
-        const d = Number(deflection) || 0;
+      const d = Number(deflection) || 0;
         // Higher deflection = lower percentage of "Cost without QueryPal"
         // Month 1: deflection is 25% of Month 3, so cost without is higher
         // Month 3: full deflection
@@ -645,6 +645,16 @@
       return value.toFixed(1) + '%';
     };
 
+    // Helper to extract number from element (handles value, textContent, innerText)
+    const extractNumber = (element) => {
+      if (!element) return 0;
+      const text = element.value || element.textContent || element.innerText || '0';
+      // Remove currency symbols, commas, and other non-numeric characters except decimal point
+      const cleaned = text.toString().replace(/[^0-9.-]/g, '');
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
     // Get input values
     const getInputs = () => {
       const agentsEl = document.getElementById('calc-agents-input');
@@ -653,11 +663,11 @@
       const deflectionEl = document.getElementById('calc-deflection-output');
       const growthRadios = document.querySelectorAll('input[name="calc-growth"]:checked');
 
-      const agents = parseFloat(agentsEl?.value || agentsEl?.textContent || 0) || 0;
-      const salary = parseFloat(salaryEl?.value || salaryEl?.textContent || 0) || 0;
-      const ticketsPerMonth = parseFloat(ticketsEl?.value || ticketsEl?.textContent || 0) || 0;
-      const deflection = parseFloat(deflectionEl?.textContent || deflectionEl?.value || 0) || 0;
-      const growth = growthRadios.length > 0 ? parseFloat(growthRadios[0].value || growthRadios[0].id.replace('calc-growth-', '')) || 0 : 0;
+      const agents = extractNumber(agentsEl);
+      const salary = extractNumber(salaryEl);
+      const ticketsPerMonth = extractNumber(ticketsEl);
+      const deflection = extractNumber(deflectionEl);
+      const growth = growthRadios.length > 0 ? extractNumber(growthRadios[0]) || parseFloat(growthRadios[0].id.replace('calc-growth-', '')) || 0 : 0;
 
       return { agents, salary, ticketsPerMonth, deflection, growth };
     };
@@ -689,8 +699,10 @@
       const costWithQueryPal = queryPalCost + humanCost;
 
       // Step 4: Cost Without QueryPal (all tickets handled by agents)
-      // This should equal totalAgentSalaries (all tickets handled by agents at current cost)
-      const costWithoutQueryPal = totalYearlyTickets * currentCostPerTicket;
+      // According to client: "This number should be exactly the same as the Total Agent Salaries"
+      // Formula: Total Yearly Tickets × Current Cost Per Ticket = Total Agent Salaries
+      // So we can use totalAgentSalaries directly to avoid rounding errors
+      const costWithoutQueryPal = totalAgentSalaries;
 
       // Step 5: ROI (Savings)
       // Cost Without should ALWAYS be greater than Cost With (because QueryPal is cheaper per ticket)
@@ -750,7 +762,13 @@
           costWithout: year1.costWithoutQueryPal,
           costWith: year1.costWithQueryPal,
           savings: year1.savings,
+          totalAgentSalaries: year1.totalAgentSalaries,
+          totalYearlyTickets: year1.totalYearlyTickets,
+          currentCostPerTicket: year1.currentCostPerTicket,
+          agents: year1.agents,
+          ticketsPerMonth: year1.ticketsPerMonth,
         });
+        console.log('Inputs:', results.inputs);
       }
 
       // Update headline savings
