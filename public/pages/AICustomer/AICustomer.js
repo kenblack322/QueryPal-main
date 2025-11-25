@@ -414,6 +414,8 @@
     const CENTER = 155;
     const RADIUS = 130;
     const SVG_NS = 'http://www.w3.org/2000/svg';
+    const QUERYPAL_PRICE_PER_TICKET = 1.0;
+    const MONTHS_PER_YEAR = 12;
 
     const angleToPoint = (angle) => {
       const rad = (angle * Math.PI) / 180;
@@ -477,57 +479,73 @@
       }
     };
 
-    // Calculate percentage of "Cost without QueryPal" from total cost
-    const calculateCostWithoutPercentage = (costWithout, costWith) => {
-      const totalCost = costWithout + costWith;
-      if (totalCost === 0) return 100; // Default to 100% if no cost
-      return (costWithout / totalCost) * 100;
+    // Calculate percentage of "Cost without QueryPal" from total cost for a given deflection
+    const calculateCostWithoutPercentage = (deflectionValue, baseAgents, baseTicketsPerMonth, salary) => {
+      // Apply deflection to calculate costs
+      const totalYearlyTickets = baseTicketsPerMonth * MONTHS_PER_YEAR;
+      const totalAgentSalaries = baseAgents * salary;
+      const currentCostPerTicket = totalYearlyTickets > 0 ? totalAgentSalaries / totalYearlyTickets : 0;
+      
+      const deflectionDecimal = Math.max(0, Math.min(100, deflectionValue)) / 100;
+      const remainingDecimal = 1 - deflectionDecimal;
+      
+      // Cost With QueryPal
+      const queryPalCost = totalYearlyTickets * deflectionDecimal * QUERYPAL_PRICE_PER_TICKET;
+      const humanCost = totalYearlyTickets * remainingDecimal * currentCostPerTicket;
+      const costWithQueryPal = queryPalCost + humanCost;
+      
+      // Cost Without QueryPal
+      const costWithoutQueryPal = totalAgentSalaries;
+      
+      // Calculate percentage
+      const totalCost = costWithoutQueryPal + costWithQueryPal;
+      if (totalCost === 0) return 100;
+      return (costWithoutQueryPal / totalCost) * 100;
     };
 
     window.calcUpdateDonuts = (deflection, year1Data = null) => {
-      // If year1Data is provided, use actual calculated values
-      if (year1Data && year1Data.costWithoutQueryPal && year1Data.costWithQueryPal) {
-        // Calculate base percentage from Year 1 data (this is the percentage after full year)
-        const year1BasePercent = calculateCostWithoutPercentage(
-          year1Data.costWithoutQueryPal,
-          year1Data.costWithQueryPal,
-        );
-
-        // Apply time-based multipliers to show progression
-        // The percentage should decrease over time as QueryPal becomes more effective
-        // Month 1: Much higher percentage (QueryPal just starting, most cost is without QP)
-        // Month 3: Medium percentage (QueryPal partially effective)
-        // Year 1: Lower percentage (QueryPal fully effective, minimal cost without QP)
-        
-        // Ensure we don't exceed 100% or go below 1%
-        const year1Percent = Math.max(1, Math.min(99, Math.round(year1BasePercent)));
-        
-        // Month 3 should be between Month 1 and Year 1
-        // If Year 1 is very low (e.g., 1%), Month 3 should be higher but not 100%
-        const month3Percent = Math.max(year1Percent, Math.min(100, Math.round(year1BasePercent * 1.5)));
-        
-        // Month 1 should be the highest (closest to 100% but not 100%)
-        const month1Percent = Math.max(month3Percent, Math.min(99, Math.round(year1BasePercent * 3.0)));
-
-        updateDonut('month1', month1Percent);
-        updateDonut('month3', month3Percent);
-        updateDonut('year1', year1Percent);
-      } else {
-        // Fallback: use deflection-based calculation
-        // Show percentage of "Cost without QueryPal" which decreases as deflection increases
       const d = Number(deflection) || 0;
-        // Higher deflection = lower percentage of "Cost without QueryPal"
-        // Month 1: deflection is 25% of Month 3, so cost without is higher
-        // Month 3: full deflection
-        // Year 1: deflection is 2x, so cost without is minimal
-        const month3Percent = Math.max(0, Math.min(100, 100 - d));
-        const month1Percent = Math.max(0, Math.min(100, 100 - d * 0.25));
-        const year1Percent = Math.max(1, Math.min(99, 100 - Math.min(d * 2, 99)));
-
-        updateDonut('month1', Math.round(month1Percent));
-        updateDonut('month3', Math.round(month3Percent));
-        updateDonut('year1', Math.round(year1Percent));
+      
+      // Get base inputs for calculation
+      const inputs = getInputs();
+      const { agents, salary, ticketsPerMonth } = inputs;
+      
+      // Follow client's formula for deflection values:
+      // Month 3 = deflection rate (e.g., 70%)
+      // Month 1 = 25% of Month 3 (e.g., 70 * 0.25 = 17.5%)
+      // Year 1 = 2x of Month 3, but never over 99% (e.g., 70 * 2 = 140, but capped at 99%)
+      const month3Deflection = Math.max(0, Math.min(100, Math.round(d)));
+      const month1Deflection = Math.max(0, Math.min(100, Math.round(d * 0.25)));
+      const year1Deflection = Math.min(Math.round(d * 2), 99);
+      
+      // Calculate percentage of "Cost without QueryPal" for each period using their deflection values
+      let month1Percent, month3Percent, year1Percent;
+      
+      if (agents && salary && ticketsPerMonth) {
+        // Calculate using actual inputs
+        month3Percent = calculateCostWithoutPercentage(month3Deflection, agents, ticketsPerMonth, salary);
+        month1Percent = calculateCostWithoutPercentage(month1Deflection, agents, ticketsPerMonth, salary);
+        year1Percent = calculateCostWithoutPercentage(year1Deflection, agents, ticketsPerMonth, salary);
+      } else {
+        // Fallback: simple calculation based on deflection
+        month3Percent = Math.max(0, Math.min(100, 100 - month3Deflection));
+        month1Percent = Math.max(0, Math.min(100, 100 - month1Deflection));
+        year1Percent = Math.max(1, Math.min(99, 100 - year1Deflection));
       }
+
+      console.log('Updating donuts:', {
+        deflection: d,
+        month1Deflection,
+        month3Deflection,
+        year1Deflection,
+        month1Percent: Math.round(month1Percent),
+        month3Percent: Math.round(month3Percent),
+        year1Percent: Math.round(year1Percent),
+      });
+
+      updateDonut('month1', Math.round(month1Percent));
+      updateDonut('month3', Math.round(month3Percent));
+      updateDonut('year1', Math.round(year1Percent));
     };
   })();
 
@@ -905,21 +923,11 @@
       
       updateUI(results);
 
-      // Update donut charts with actual calculated data
-      if (window.calcUpdateDonuts && results && results.year1) {
-        console.log('Updating donuts with year1 data:', {
-          costWithout: results.year1.costWithoutQueryPal,
-          costWith: results.year1.costWithQueryPal,
-          deflection: inputs.deflection,
-        });
-        // Pass deflection and year1 data to calculate correct percentages
-        window.calcUpdateDonuts(inputs.deflection, results.year1);
-      } else if (window.calcUpdateDonuts && inputs.deflection !== undefined) {
-        console.log('Updating donuts with deflection only:', inputs.deflection);
-        // Fallback: use deflection only
+      // Update donut charts with deflection rate (following client's exact formula)
+      if (window.calcUpdateDonuts && inputs.deflection !== undefined) {
         window.calcUpdateDonuts(inputs.deflection);
       } else {
-        console.warn('calcUpdateDonuts not available or no data');
+        console.warn('calcUpdateDonuts not available or deflection not found');
       }
     };
 
