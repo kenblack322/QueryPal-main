@@ -950,12 +950,31 @@
       );
 
       // Update Y-axis labels dynamically based on max value
+      // Supports labels on both left and right sides
       const updateYAxisLabels = (maxValue) => {
+        // Format label value
+        const formatLabel = (value) => {
+          if (value === 0) {
+            return '$0K';
+          } else {
+            // Always format in thousands (K)
+            const valueInK = Math.round(value / 1000);
+            return `$${valueInK.toLocaleString('en-US')}K`;
+          }
+        };
+
+        // Update a single label element (works for both left and right)
+        const updateLabel = (id, value) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = formatLabel(value);
+        };
+
         if (maxValue <= 0) {
           // Default labels if no data
           for (let i = 0; i <= 6; i++) {
-            const el = document.getElementById(`calc-y-axis-${i}`);
-            if (el) el.textContent = `$${i * 50}K`;
+            const defaultValue = i * 50 * 1000; // $0K, $50K, $100K, etc.
+            updateLabel(`calc-y-axis-left-${i}`, defaultValue);
+            updateLabel(`calc-y-axis-right-${i}`, defaultValue);
           }
           return;
         }
@@ -978,20 +997,11 @@
         // Calculate step (divide into 6 equal intervals for 7 labels)
         const step = roundedMax / 6;
 
-        // Generate labels (7 labels: 0 to 6)
+        // Generate labels (7 labels: 0 to 6) for both left and right sides
         for (let i = 0; i <= 6; i++) {
           const value = i * step;
-          const el = document.getElementById(`calc-y-axis-${i}`);
-          if (el) {
-            // Format: $0K, $250K, $500K, $1,000K, $1,500K, etc.
-            if (value === 0) {
-              el.textContent = '$0K';
-            } else {
-              // Always format in thousands (K)
-              const valueInK = Math.round(value / 1000);
-              el.textContent = `$${valueInK.toLocaleString('en-US')}K`;
-            }
-          }
+          updateLabel(`calc-y-axis-left-${i}`, value);
+          updateLabel(`calc-y-axis-right-${i}`, value);
         }
       };
 
