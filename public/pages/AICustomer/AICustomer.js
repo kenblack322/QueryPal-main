@@ -603,7 +603,8 @@
         year1CostWithout: Math.round(year1CostWithout),
       });
 
-      // Update donuts: pass costWithPercent, but segment will be drawn using costWithoutPercent (right value)
+      // Update donuts: segment is drawn using costWithoutPercent (right value, e.g., 3% for Year 1)
+      // Left value shows costWithPercent, right value shows costWithoutPercent
       updateDonut('month1', Math.round(month1CostWith), Math.round(month1CostWithout));
       updateDonut('month3', Math.round(month3CostWith), Math.round(month3CostWithout));
       updateDonut('year1', Math.round(year1CostWith), Math.round(year1CostWithout));
