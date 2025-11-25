@@ -515,7 +515,7 @@
       } else {
         // Fallback: use deflection-based calculation
         // Show percentage of "Cost without QueryPal" which decreases as deflection increases
-        const d = Number(deflection) || 0;
+      const d = Number(deflection) || 0;
         // Higher deflection = lower percentage of "Cost without QueryPal"
         // Month 1: deflection is 25% of Month 3, so cost without is higher
         // Month 3: full deflection
@@ -669,24 +669,37 @@
       const salaryEl = document.getElementById('calc-salary-input');
       const ticketsEl = document.getElementById('calc-tickets-input');
       const deflectionEl = document.getElementById('calc-deflection-output');
-      const growthRadios = document.querySelectorAll('input[name="calc-growth"]:checked');
 
       const agents = extractNumber(agentsEl);
       const salary = extractNumber(salaryEl);
       const ticketsPerMonth = extractNumber(ticketsEl);
       const deflection = extractNumber(deflectionEl);
       
-      // Get growth rate from checked radio button
+      // Get growth rate from checked radio button by ID
+      // IDs are: calc-growth-0, calc-growth-25, calc-growth-50, calc-growth-75, calc-growth-100
       let growth = 0;
-      if (growthRadios.length > 0) {
-        const checkedRadio = growthRadios[0];
-        // Try to get value from radio button value attribute, or from ID
-        growth = extractNumber(checkedRadio);
-        if (growth === 0 && checkedRadio.id) {
-          // Extract number from ID like "calc-growth-25"
-          const idMatch = checkedRadio.id.match(/calc-growth-(\d+)/);
+      const growthRadioIds = ['calc-growth-0', 'calc-growth-25', 'calc-growth-50', 'calc-growth-75', 'calc-growth-100'];
+      
+      for (const radioId of growthRadioIds) {
+        const radio = document.getElementById(radioId);
+        if (radio && radio.checked) {
+          // Extract number from ID (e.g., "calc-growth-25" -> 25)
+          const idMatch = radioId.match(/calc-growth-(\d+)/);
           if (idMatch) {
             growth = parseFloat(idMatch[1]) || 0;
+            break;
+          }
+        }
+      }
+      
+      // If no radio is checked, try to find default (calc-growth-25)
+      if (growth === 0) {
+        const defaultRadio = document.getElementById('calc-growth-25');
+        if (defaultRadio) {
+          // Set it as checked if none are checked
+          if (!document.querySelector('input[id^="calc-growth-"]:checked')) {
+            defaultRadio.checked = true;
+            growth = 25;
           }
         }
       }
@@ -874,17 +887,39 @@
 
     // Recalculate and update
     const recalculate = () => {
+      console.log('Recalculating...');
+      const inputs = getInputs();
+      console.log('Inputs:', inputs);
+      
       const results = calculateAll();
+      if (!results) {
+        console.warn('No results calculated - check inputs');
+        return;
+      }
+      
+      console.log('Results calculated:', {
+        year1: { costWithout: results.year1.costWithoutQueryPal, costWith: results.year1.costWithQueryPal },
+        year2: { costWithout: results.year2.costWithoutQueryPal, costWith: results.year2.costWithQueryPal },
+        year3: { costWithout: results.year3.costWithoutQueryPal, costWith: results.year3.costWithQueryPal },
+      });
+      
       updateUI(results);
 
       // Update donut charts with actual calculated data
-      const inputs = getInputs();
       if (window.calcUpdateDonuts && results && results.year1) {
+        console.log('Updating donuts with year1 data:', {
+          costWithout: results.year1.costWithoutQueryPal,
+          costWith: results.year1.costWithQueryPal,
+          deflection: inputs.deflection,
+        });
         // Pass deflection and year1 data to calculate correct percentages
         window.calcUpdateDonuts(inputs.deflection, results.year1);
       } else if (window.calcUpdateDonuts && inputs.deflection !== undefined) {
+        console.log('Updating donuts with deflection only:', inputs.deflection);
         // Fallback: use deflection only
         window.calcUpdateDonuts(inputs.deflection);
+      } else {
+        console.warn('calcUpdateDonuts not available or no data');
       }
     };
 
@@ -895,7 +930,6 @@
       const salaryEl = document.getElementById('calc-salary-input');
       const ticketsEl = document.getElementById('calc-tickets-input');
       const deflectionEl = document.getElementById('calc-deflection-output');
-      const growthRadios = document.querySelectorAll('input[name="calc-growth"]');
 
       // Add event listeners
       if (agentsEl) {
@@ -925,9 +959,37 @@
         });
       }
 
-      // Watch for growth rate changes
-      growthRadios.forEach((radio) => {
-        radio.addEventListener('change', recalculate);
+      // Watch for growth rate changes by ID
+      const growthRadioIds = ['calc-growth-0', 'calc-growth-25', 'calc-growth-50', 'calc-growth-75', 'calc-growth-100'];
+      
+      growthRadioIds.forEach((radioId) => {
+        const radio = document.getElementById(radioId);
+        if (radio) {
+          radio.addEventListener('change', () => {
+            console.log('Growth rate changed:', radioId, radio.checked);
+            recalculate();
+          });
+          radio.addEventListener('click', () => {
+            console.log('Growth rate clicked:', radioId, radio.checked);
+            // Small delay to ensure radio is checked
+            setTimeout(recalculate, 10);
+          });
+        }
+      });
+
+      // Also use event delegation on document level as fallback
+      document.addEventListener('change', (e) => {
+        if (e.target && e.target.id && e.target.id.startsWith('calc-growth-')) {
+          console.log('Growth rate changed via delegation:', e.target.id);
+          recalculate();
+        }
+      });
+      
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.id && e.target.id.startsWith('calc-growth-')) {
+          console.log('Growth rate clicked via delegation:', e.target.id);
+          setTimeout(recalculate, 10);
+        }
       });
 
       // Initial calculation
