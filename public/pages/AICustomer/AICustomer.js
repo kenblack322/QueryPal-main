@@ -1099,10 +1099,81 @@
   })();
 
   /* ------------------------------------------------------------------------
+   * reCAPTCHA v3 Integration
+   * --------------------------------------------------------------------- */
+  (() => {
+    const RECAPTCHA_SITE_KEY = '6LdrqxgsAAAAAEYxrt5B3l5EWhf713nBn3jFCMby';
+    
+    // Load reCAPTCHA v3 script
+    const loadRecaptcha = () => {
+      if (window.grecaptcha && window.grecaptcha.ready) {
+        return Promise.resolve();
+      }
+      
+      return new Promise((resolve, reject) => {
+        // Check if script already exists
+        if (document.querySelector('script[src*="recaptcha"]')) {
+          // Script exists, wait for it to load
+          const checkReady = setInterval(() => {
+            if (window.grecaptcha && window.grecaptcha.ready) {
+              clearInterval(checkReady);
+              resolve();
+            }
+          }, 100);
+          setTimeout(() => {
+            clearInterval(checkReady);
+            if (!window.grecaptcha) reject(new Error('reCAPTCHA failed to load'));
+          }, 5000);
+          return;
+        }
+        
+        // Create and load script
+        const script = document.createElement('script');
+        script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          window.grecaptcha.ready(() => {
+            resolve();
+          });
+        };
+        script.onerror = () => {
+          reject(new Error('Failed to load reCAPTCHA script'));
+        };
+        document.head.appendChild(script);
+      });
+    };
+    
+    // Get reCAPTCHA token
+    const getRecaptchaToken = async (action = 'submit') => {
+      try {
+        await loadRecaptcha();
+        const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
+        return token;
+      } catch (error) {
+        console.error('reCAPTCHA error:', error);
+        return null;
+      }
+    };
+    
+    // Expose function globally
+    window.getRecaptchaToken = getRecaptchaToken;
+    
+    // Load reCAPTCHA on page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        loadRecaptcha().catch(err => console.warn('reCAPTCHA preload failed:', err));
+      });
+    } else {
+      loadRecaptcha().catch(err => console.warn('reCAPTCHA preload failed:', err));
+    }
+  })();
+
+  /* ------------------------------------------------------------------------
    * PDF Download Functionality
    * --------------------------------------------------------------------- */
   (() => {
-    const PDF_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook/7ad16972-c30c-46a5-9970-fdcbb0d4c916';
+    const PDF_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook-test/7ad16972-c30c-46a5-9970-fdcbb0d4c916';
     const HUBSPOT_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook/694308a2-dbf3-466e-bb17-aeba183a1488';
 
     // Collect calculator data for PDF
@@ -1194,9 +1265,9 @@
       });
     };
 
-    // Generate and download PDF (formData is optional for testing)
-    const generatePDF = async (formData = null) => {
-      console.log('generatePDF called with formData:', formData);
+    // Generate and download PDF (formData and recaptchaToken are optional)
+    const generatePDF = async (formData = null, recaptchaToken = null) => {
+      console.log('generatePDF called with formData:', formData, 'recaptchaToken:', recaptchaToken ? 'present' : 'missing');
       try {
         // ALWAYS trigger recalculation to ensure data is up-to-date
         console.log('Triggering calculator recalculation to ensure fresh data...');
@@ -1237,10 +1308,13 @@
         // Prepare payload for n8n
         // n8n webhook automatically wraps POST body in $json.body
         // The Set node expects: $json.body.inputs and $json.body.results
-        // So we send data directly: {inputs: {...}, results: {...}}
-        // n8n will wrap it: $json.body = {inputs: {...}, results: {...}}
+        // So we send data directly: {inputs: {...}, results: {...}, recaptchaToken: '...'}
+        // n8n will wrap it: $json.body = {inputs: {...}, results: {...}, recaptchaToken: '...'}
         // Then $json.body.inputs and $json.body.results will work correctly
-        const payload = calculatorData;
+        const payload = {
+          ...calculatorData,
+          recaptchaToken: recaptchaToken || null,
+        };
 
         console.log('=== PDF GENERATION DEBUG ===');
         console.log('Calculator inputs:', calculatorData.inputs);
@@ -1442,7 +1516,7 @@
     };
 
     // Handle form submission (form is optional for testing)
-    const handleFormSubmit = (e) => {
+    const handleFormSubmit = async (e) => {
       console.log('handleFormSubmit called');
       if (e) {
         e.preventDefault();
@@ -1487,13 +1561,26 @@
 
       console.log('Form data:', formData);
 
+      // Get reCAPTCHA token before submission
+      let recaptchaToken = null;
+      if (window.getRecaptchaToken) {
+        try {
+          console.log('Getting reCAPTCHA token...');
+          recaptchaToken = await window.getRecaptchaToken('download_pdf');
+          console.log('reCAPTCHA token received:', recaptchaToken ? 'Yes' : 'No');
+        } catch (error) {
+          console.warn('reCAPTCHA token generation failed:', error);
+          // Continue without token if reCAPTCHA fails (graceful degradation)
+        }
+      }
+
       // Send to HubSpot only if form data exists (fire and forget)
       if (formData) {
         sendToHubSpot(formData);
       }
 
-      // Generate PDF (formData is optional)
-      generatePDF(formData);
+      // Generate PDF (formData is optional, recaptchaToken will be included)
+      generatePDF(formData, recaptchaToken);
     };
 
     // Initialize PDF download functionality
@@ -1509,7 +1596,8 @@
           e.stopPropagation();
           console.log('Download button clicked - generating PDF directly');
           // Generate PDF directly (popup animation handled by Webflow)
-          generatePDF(null);
+          // No form data and no reCAPTCHA token for direct download
+          generatePDF(null, null);
         });
       } else {
         console.warn('Download button not found! Make sure button has ID: calc-download-btn');
