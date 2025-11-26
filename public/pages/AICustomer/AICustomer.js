@@ -858,7 +858,15 @@
 
       if (savingsYearEl) savingsYearEl.textContent = formatCurrency(year1.savings);
       if (savings3YearEl) savings3YearEl.textContent = formatCurrency(totalSavings3Years);
-      if (roiEl) roiEl.textContent = formatCurrency(year1.savings); // ROI is always dollar amount
+      
+      // Calculate ROI as percentage: (savings / cost without QueryPal) * 100
+      if (roiEl) {
+        const roiPercent = year1.costWithoutQueryPal > 0 
+          ? (year1.savings / year1.costWithoutQueryPal) * 100 
+          : 0;
+        roiEl.textContent = formatPercent(roiPercent);
+      }
+      
       if (ticketsAIEl) ticketsAIEl.textContent = formatNumber(year1.ticketsSolvedByAI);
 
       // Update popup savings preview (if popup exists)
