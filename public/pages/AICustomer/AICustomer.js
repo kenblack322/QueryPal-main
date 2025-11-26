@@ -1099,76 +1099,6 @@
   })();
 
   /* ------------------------------------------------------------------------
-   * reCAPTCHA v3 Integration
-   * --------------------------------------------------------------------- */
-  (() => {
-    const RECAPTCHA_SITE_KEY = '6LdrqxgsAAAAAEYxrt5B3l5EWhf713nBn3jFCMby';
-    
-    // Load reCAPTCHA v3 script
-    const loadRecaptcha = () => {
-      if (window.grecaptcha && window.grecaptcha.ready) {
-        return Promise.resolve();
-      }
-      
-      return new Promise((resolve, reject) => {
-        // Check if script already exists
-        if (document.querySelector('script[src*="recaptcha"]')) {
-          // Script exists, wait for it to load
-          const checkReady = setInterval(() => {
-            if (window.grecaptcha && window.grecaptcha.ready) {
-              clearInterval(checkReady);
-              resolve();
-            }
-          }, 100);
-          setTimeout(() => {
-            clearInterval(checkReady);
-            if (!window.grecaptcha) reject(new Error('reCAPTCHA failed to load'));
-          }, 5000);
-          return;
-        }
-        
-        // Create and load script
-        const script = document.createElement('script');
-        script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-          window.grecaptcha.ready(() => {
-            resolve();
-          });
-        };
-        script.onerror = () => {
-          reject(new Error('Failed to load reCAPTCHA script'));
-        };
-        document.head.appendChild(script);
-      });
-    };
-    
-    // Get reCAPTCHA token
-    const getRecaptchaToken = async (action = 'submit') => {
-      try {
-        await loadRecaptcha();
-        const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
-        return token;
-      } catch (error) {
-        return null;
-      }
-    };
-    
-    // Expose function globally
-    window.getRecaptchaToken = getRecaptchaToken;
-    
-    // Load reCAPTCHA on page load
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        loadRecaptcha().catch(err => console.warn('reCAPTCHA preload failed:', err));
-      });
-    } else {
-      loadRecaptcha().catch(err => console.warn('reCAPTCHA preload failed:', err));
-    }
-  })();
-
-  /* ------------------------------------------------------------------------
    * PDF Download Functionality
    * --------------------------------------------------------------------- */
   (() => {
@@ -1405,12 +1335,14 @@
         company,
       } : null;
 
+      // Get reCAPTCHA v2 token from Webflow form
+      // Webflow automatically adds token to hidden field 'g-recaptcha-response' after successful verification
       let recaptchaToken = null;
-      if (window.getRecaptchaToken) {
-        try {
-          recaptchaToken = await window.getRecaptchaToken('download_pdf');
-        } catch (error) {
-          // Continue without token if reCAPTCHA fails
+      const form = e?.target || document.getElementById('calc-download-popup')?.querySelector('form');
+      if (form) {
+        const recaptchaField = form.querySelector('textarea[name="g-recaptcha-response"]');
+        if (recaptchaField && recaptchaField.value) {
+          recaptchaToken = recaptchaField.value;
         }
       }
 
