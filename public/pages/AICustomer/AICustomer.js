@@ -1333,19 +1333,19 @@
       let recaptchaVerified = false;
       
       if (form) {
-        // Method 1: Check for token in hidden fields (standard reCAPTCHA v2)
-        // Check both textarea and input, and also check all hidden fields
+        // Method 1: Check for token in standard reCAPTCHA v2 field
         const recaptchaField = form.querySelector('textarea[name="g-recaptcha-response"], input[name="g-recaptcha-response"]');
-        if (recaptchaField && recaptchaField.value && recaptchaField.value.length > 0) {
+        if (recaptchaField && recaptchaField.value && recaptchaField.value.trim().length > 50) {
           recaptchaVerified = true;
         }
         
-        // Method 2: Check all hidden fields for recaptcha token
+        // Method 2: Check all form fields for recaptcha token (including hidden fields)
         if (!recaptchaVerified) {
-          const allHiddenFields = form.querySelectorAll('input[type="hidden"], textarea[style*="display: none"], textarea[style*="display:none"]');
-          for (const field of allHiddenFields) {
+          const allFields = form.querySelectorAll('input, textarea');
+          for (const field of allFields) {
             const name = (field.name || '').toLowerCase();
-            const value = field.value || '';
+            const value = (field.value || '').trim();
+            // Check if field name contains recaptcha and has a valid token (long string)
             if ((name.includes('recaptcha') || name.includes('g-recaptcha')) && value.length > 50) {
               recaptchaVerified = true;
               break;
@@ -1356,22 +1356,22 @@
         // Method 3: Check if grecaptcha API is available and widget is verified
         if (!recaptchaVerified && window.grecaptcha && typeof window.grecaptcha.getResponse === 'function') {
           try {
-            // Try to get response without widget ID first (works if only one widget on page)
+            // Try to get response - if no widget is verified, this returns empty string
             const response = window.grecaptcha.getResponse();
-            if (response && response.length > 0) {
+            if (response && response.trim().length > 50) {
               recaptchaVerified = true;
             } else {
-              // Try to find widget ID and get response
+              // Try to find widget ID in form and get response
               const recaptchaContainer = form.querySelector('.g-recaptcha, [data-sitekey]');
               if (recaptchaContainer) {
-                // Look for widget ID in the container or nearby elements
+                // Look for widget ID
                 const widgetIdElement = recaptchaContainer.querySelector('[data-widget-id]') || 
                                        recaptchaContainer.closest('[data-widget-id]');
                 if (widgetIdElement) {
                   const widgetId = parseInt(widgetIdElement.getAttribute('data-widget-id'));
                   if (!isNaN(widgetId)) {
                     const widgetResponse = window.grecaptcha.getResponse(widgetId);
-                    if (widgetResponse && widgetResponse.length > 0) {
+                    if (widgetResponse && widgetResponse.trim().length > 50) {
                       recaptchaVerified = true;
                     }
                   }
@@ -1379,21 +1379,13 @@
               }
             }
           } catch (e) {
-            // Ignore errors
-          }
-        }
-        
-        // Method 4: Check if reCAPTCHA iframe exists and is visible (indicates widget is present)
-        // If widget exists, assume it's verified if we can't find token (Webflow handles validation)
-        if (!recaptchaVerified) {
-          const recaptchaIframe = form.querySelector('iframe[src*="recaptcha"], iframe[title*="recaptcha"]');
-          if (recaptchaIframe) {
-            // Widget exists, but we can't verify token - this might be OK if Webflow validated it
-            // For now, we'll still require the token to be present
+            // If error occurs, assume not verified
+            recaptchaVerified = false;
           }
         }
       }
 
+      // Strict check: if no token found, show error
       if (!recaptchaVerified) {
         showFormMessage('Please complete the reCAPTCHA verification', 'error');
         return;
