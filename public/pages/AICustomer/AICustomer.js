@@ -1325,6 +1325,21 @@
         }
       }
 
+      // Check reCAPTCHA (required)
+      const form = e?.target || document.getElementById('calc-download-popup')?.querySelector('form');
+      let recaptchaToken = null;
+      if (form) {
+        const recaptchaField = form.querySelector('textarea[name="g-recaptcha-response"]');
+        if (recaptchaField && recaptchaField.value) {
+          recaptchaToken = recaptchaField.value;
+        }
+      }
+
+      if (!recaptchaToken) {
+        alert('Please complete the reCAPTCHA verification');
+        return;
+      }
+
       const formData = firstName && email ? {
         firstName,
         email,
