@@ -1405,28 +1405,23 @@
         company,
       } : null;
 
-      // Get reCAPTCHA token before submission
       let recaptchaToken = null;
       if (window.getRecaptchaToken) {
         try {
           recaptchaToken = await window.getRecaptchaToken('download_pdf');
         } catch (error) {
-          // Continue without token if reCAPTCHA fails (graceful degradation)
+          // Continue without token if reCAPTCHA fails
         }
       }
 
-      // Send to HubSpot (fire and forget)
       if (formData) {
         sendToHubSpot(formData);
       }
 
-      // Generate PDF
       generatePDF(formData, recaptchaToken);
     };
 
-    // Initialize PDF download functionality
     const initPDFDownload = () => {
-      // Form submission
       setTimeout(() => {
         const form = document.getElementById('calc-download-popup')?.querySelector('form');
         if (form) {
@@ -1435,7 +1430,6 @@
           });
         }
 
-        // Submit button click
         const submitBtn = document.getElementById('calc-form-submit-btn');
         if (submitBtn) {
           submitBtn.addEventListener('click', (e) => {
@@ -1445,7 +1439,6 @@
           });
         }
 
-        // Hide Webflow form button if it exists
         const webflowSubmitBtn = document.querySelector('#calc-download-popup form [type="submit"]');
         if (webflowSubmitBtn && webflowSubmitBtn !== submitBtn) {
           webflowSubmitBtn.style.display = 'none';
