@@ -1151,7 +1151,6 @@
         const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action });
         return token;
       } catch (error) {
-        console.error('reCAPTCHA error:', error);
         return null;
       }
     };
@@ -1178,38 +1177,18 @@
 
     // Collect calculator data for PDF
     const collectCalculatorData = () => {
-      console.log('=== COLLECTING CALCULATOR DATA ===');
-      
-      // Check if functions exist
-      if (!window.calcGetInputs) {
-        console.error('window.calcGetInputs is not available!');
-        return null;
-      }
-      if (!window.calcGetResults) {
-        console.error('window.calcGetResults is not available!');
+      if (!window.calcGetInputs || !window.calcGetResults) {
         return null;
       }
       
       const inputs = window.calcGetInputs();
       const results = window.calcGetResults();
 
-      console.log('Raw inputs from DOM:', inputs);
-      console.log('Raw results from calcLastResults:', results);
-      console.log('window.calcLastResults:', window.calcLastResults);
-
-      if (!inputs) {
-        console.error('Inputs are null or undefined');
-        return null;
-      }
-      
-      if (!results) {
-        console.error('Results are null or undefined');
-        console.error('Make sure calculator has been run at least once!');
+      if (!inputs || !results) {
         return null;
       }
 
-      // Format data according to n8n workflow structure
-      const formattedData = {
+      return {
         inputs: {
           agents: inputs.agents || 0,
           salary: inputs.salary || 0,
@@ -1240,11 +1219,6 @@
           },
         },
       };
-      
-      console.log('Formatted data for n8n:', formattedData);
-      console.log('=== END DATA COLLECTION ===');
-      
-      return formattedData;
     };
 
     // Send data to HubSpot (fire and forget, no error handling)
@@ -1267,24 +1241,16 @@
 
     // Generate and download PDF (formData and recaptchaToken are optional)
     const generatePDF = async (formData = null, recaptchaToken = null) => {
-      console.log('generatePDF called with formData:', formData, 'recaptchaToken:', recaptchaToken ? 'present' : 'missing');
       try {
-        // ALWAYS trigger recalculation to ensure data is up-to-date
-        console.log('Triggering calculator recalculation to ensure fresh data...');
+        // Trigger recalculation to ensure data is up-to-date
         if (typeof window.calcRecalculate === 'function') {
           window.calcRecalculate();
-          // Wait for calculation to complete (increased delay to ensure UI updates)
           await new Promise(resolve => setTimeout(resolve, 500));
-          console.log('Recalculation completed');
-          console.log('window.calcLastResults after recalculation:', window.calcLastResults);
           
-          // Verify that results were actually calculated
           if (!window.calcLastResults || !window.calcLastResults.year1) {
-            console.error('ERROR: Results not found after recalculation!');
             throw new Error('Calculator results not available. Please ensure all fields are filled correctly.');
           }
         } else {
-          console.warn('calcRecalculate function not available. Using existing results if available.');
           if (!window.calcLastResults) {
             throw new Error('Calculator has not been run. Please fill in the calculator first.');
           }
@@ -1292,82 +1258,32 @@
         
         // Collect calculator data
         const calculatorData = collectCalculatorData();
-        console.log('Collected calculator data:', calculatorData);
         if (!calculatorData) {
           throw new Error('Calculator data not available. Please fill in the calculator and try again.');
         }
-        
-        // Validate that data is not all zeros
-        const hasValidData = calculatorData.inputs.agents > 0 || 
-                            calculatorData.inputs.salary > 0 || 
-                            calculatorData.results.savingsYear > 0;
-        if (!hasValidData) {
-          console.warn('Warning: Calculator data appears to be empty or zero. PDF will be generated with zero values.');
-        }
 
-        // Prepare payload for n8n
-        // n8n webhook automatically wraps POST body in $json.body
-        // The Set node expects: $json.body.inputs and $json.body.results
-        // So we send data directly: {inputs: {...}, results: {...}, recaptchaToken: '...'}
-        // n8n will wrap it: $json.body = {inputs: {...}, results: {...}, recaptchaToken: '...'}
-        // Then $json.body.inputs and $json.body.results will work correctly
+        // Prepare payload for n8n (n8n webhook wraps POST body in $json.body)
+        // In n8n: $json.body.recaptchaToken will contain the token
         const payload = {
           ...calculatorData,
-          recaptchaToken: recaptchaToken || null,
         };
-
-        console.log('=== PDF GENERATION DEBUG ===');
-        console.log('Calculator inputs:', calculatorData.inputs);
-        console.log('Calculator results:', calculatorData.results);
-        console.log('Full payload structure:', {
-          body: {
-            inputs: calculatorData.inputs,
-            results: calculatorData.results
-          }
-        });
-        console.log('Full payload JSON:', JSON.stringify(payload, null, 2));
-        console.log('PDF webhook URL:', PDF_WEBHOOK_URL);
         
-        // Validate data before sending
-        const hasNonZeroInputs = calculatorData.inputs.agents > 0 || 
-                                 calculatorData.inputs.salary > 0 || 
-                                 calculatorData.inputs.ticketsPerMonth > 0;
-        const hasNonZeroResults = calculatorData.results.savingsYear > 0 || 
-                                  calculatorData.results.costWithout?.year1 > 0;
-        
-        console.log('Data validation:', {
-          hasNonZeroInputs,
-          hasNonZeroResults,
-          inputs: calculatorData.inputs,
-          resultsSample: {
-            savingsYear: calculatorData.results.savingsYear,
-            costWithoutYear1: calculatorData.results.costWithout?.year1
-          }
-        });
-        
-        if (!hasNonZeroInputs && !hasNonZeroResults) {
-          console.error('WARNING: All data is zero! Check if calculator has been filled and calculated.');
+        // Add reCAPTCHA token if available
+        if (recaptchaToken) {
+          payload.recaptchaToken = recaptchaToken;
         }
 
-        // Show loading message (optional - only if popup exists)
+        // Show loading state
         const popup = document.getElementById('calc-download-popup');
         const submitBtn = document.getElementById('calc-form-submit-btn');
-        const downloadBtn = document.getElementById('calc-download-btn');
-        const originalBtnText = submitBtn ? submitBtn.textContent : (downloadBtn ? downloadBtn.textContent : '');
+        const originalBtnText = submitBtn ? submitBtn.textContent : '';
         
-        // Disable button and show loading state
         if (submitBtn) {
           submitBtn.disabled = true;
           submitBtn.textContent = 'Generating PDF...';
-        } else if (downloadBtn) {
-          downloadBtn.disabled = true;
-          const originalDownloadText = downloadBtn.textContent;
-          downloadBtn.textContent = 'Generating PDF...';
-          downloadBtn.dataset.originalText = originalDownloadText;
         }
 
         // Send to n8n for PDF generation
-        console.log('Fetching PDF from n8n...');
         const response = await fetch(PDF_WEBHOOK_URL, {
           method: 'POST',
           headers: {
@@ -1376,43 +1292,21 @@
           body: JSON.stringify(payload),
         });
 
-        console.log('Response received:', {
-          status: response.status,
-          statusText: response.statusText,
-          contentType: response.headers.get('content-type'),
-          ok: response.ok
-        });
-
         if (!response.ok) {
-          // Try to get error message from response
           let errorMessage = `HTTP error! status: ${response.status}`;
           try {
             const errorText = await response.text();
-            console.error('Error response body:', errorText);
             if (errorText) {
               errorMessage += ` - ${errorText}`;
             }
           } catch (e) {
-            console.error('Could not read error response:', e);
+            // Ignore error reading response
           }
           throw new Error(errorMessage);
         }
 
-        // Check content type
-        const contentType = response.headers.get('content-type');
-        console.log('Response content type:', contentType);
-        
-        if (contentType && !contentType.includes('application/pdf') && !contentType.includes('application/octet-stream')) {
-          console.warn('Warning: Response is not a PDF. Content type:', contentType);
-          // Still try to download, but log warning
-        }
-
         // Get PDF blob
         const blob = await response.blob();
-        console.log('Blob received:', {
-          size: blob.size,
-          type: blob.type
-        });
         
         if (blob.size === 0) {
           throw new Error('Received empty PDF file from server');
@@ -1427,8 +1321,6 @@
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        
-        console.log('PDF download initiated successfully');
 
         // Show success message (optional - only if popup exists)
         if (popup) {
@@ -1464,21 +1356,11 @@
         }, 1500);
 
       } catch (error) {
-        console.error('=== PDF GENERATION ERROR ===');
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        });
-        console.error('Full error object:', error);
-        
-        // Show error message (optional - only if popup exists)
+        // Show error message
         const popup = document.getElementById('calc-download-popup');
         const submitBtn = document.getElementById('calc-form-submit-btn');
-        const downloadBtn = document.getElementById('calc-download-btn');
-        const originalBtnText = submitBtn ? submitBtn.textContent : (downloadBtn ? downloadBtn.textContent : '');
+        const originalBtnText = submitBtn ? submitBtn.textContent : '';
         
-        // Create user-friendly error message
         let errorMessage = 'An error occurred while downloading the file. Please try again later.';
         if (error.message) {
           if (error.message.includes('Calculator data not available')) {
@@ -1499,25 +1381,19 @@
             popup.appendChild(messageEl);
           }
         } else {
-          // If no popup, show alert
           alert(errorMessage);
         }
 
-        // Re-enable buttons
+        // Re-enable button
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = originalBtnText;
         }
-        if (downloadBtn) {
-          downloadBtn.disabled = false;
-          downloadBtn.textContent = downloadBtn.dataset.originalText || originalBtnText;
-        }
       }
     };
 
-    // Handle form submission (form is optional for testing)
+    // Handle form submission
     const handleFormSubmit = async (e) => {
-      console.log('handleFormSubmit called');
       if (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1527,27 +1403,19 @@
       const emailEl = document.getElementById('calc-form-email');
       const companyEl = document.getElementById('calc-form-company');
 
-      console.log('Form elements:', { firstNameEl, emailEl, companyEl });
-
       const firstName = firstNameEl ? firstNameEl.value.trim() : '';
       const email = emailEl ? emailEl.value.trim() : '';
       const company = companyEl ? companyEl.value.trim() : '';
 
-      console.log('Form values:', { firstName, email, company });
-
-      // Form validation is optional for testing
-      // If form fields exist and are filled, validate them
+      // Form validation
       if (firstNameEl && emailEl) {
         if (!firstName || !email) {
-          console.warn('First name and email are required');
           alert('Please fill in First Name and Email fields');
           return;
         }
 
-        // Basic email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-          console.warn('Invalid email format');
           alert('Please enter a valid email address');
           return;
         }
@@ -1559,83 +1427,50 @@
         company,
       } : null;
 
-      console.log('Form data:', formData);
-
       // Get reCAPTCHA token before submission
       let recaptchaToken = null;
       if (window.getRecaptchaToken) {
         try {
-          console.log('Getting reCAPTCHA token...');
           recaptchaToken = await window.getRecaptchaToken('download_pdf');
-          console.log('reCAPTCHA token received:', recaptchaToken ? 'Yes' : 'No');
         } catch (error) {
-          console.warn('reCAPTCHA token generation failed:', error);
           // Continue without token if reCAPTCHA fails (graceful degradation)
         }
       }
 
-      // Send to HubSpot only if form data exists (fire and forget)
+      // Send to HubSpot (fire and forget)
       if (formData) {
         sendToHubSpot(formData);
       }
 
-      // Generate PDF (formData is optional, recaptchaToken will be included)
+      // Generate PDF
       generatePDF(formData, recaptchaToken);
     };
 
     // Initialize PDF download functionality
     const initPDFDownload = () => {
-      console.log('Initializing PDF download functionality...');
-      
-      // Download button - generate PDF directly (popup opening/closing handled by Webflow)
-      const downloadBtn = document.getElementById('calc-download-btn');
-      console.log('Download button found:', downloadBtn);
-      if (downloadBtn) {
-        downloadBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('Download button clicked - generating PDF directly');
-          // Generate PDF directly (popup animation handled by Webflow)
-          // No form data and no reCAPTCHA token for direct download
-          generatePDF(null, null);
-        });
-      } else {
-        console.warn('Download button not found! Make sure button has ID: calc-download-btn');
-      }
-
-      // Form submission - wait a bit for form to be available
+      // Form submission
       setTimeout(() => {
         const form = document.getElementById('calc-download-popup')?.querySelector('form');
-        console.log('Form found:', form);
         if (form) {
           form.addEventListener('submit', (e) => {
-            console.log('Form submitted');
             handleFormSubmit(e);
           });
-        } else {
-          console.warn('Form not found in popup!');
         }
 
-        // Alternative: submit button click (form is optional)
+        // Submit button click
         const submitBtn = document.getElementById('calc-form-submit-btn');
-        console.log('Submit button found:', submitBtn);
         if (submitBtn) {
           submitBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Submit button clicked');
-            // Try to handle form submission (form is optional)
             handleFormSubmit(e);
           });
-        } else {
-          console.warn('Submit button not found! Make sure button has ID: calc-form-submit-btn');
         }
 
         // Hide Webflow form button if it exists
         const webflowSubmitBtn = document.querySelector('#calc-download-popup form [type="submit"]');
         if (webflowSubmitBtn && webflowSubmitBtn !== submitBtn) {
           webflowSubmitBtn.style.display = 'none';
-          console.log('Webflow submit button hidden');
         }
       }, 500);
     };
