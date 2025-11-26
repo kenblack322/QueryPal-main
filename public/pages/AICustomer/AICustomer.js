@@ -1221,7 +1221,6 @@
       };
     };
 
-    // Send data to HubSpot (fire and forget, no error handling)
     const sendToHubSpot = (formData) => {
       fetch(HUBSPOT_WEBHOOK_URL, {
         method: 'POST',
@@ -1233,13 +1232,11 @@
           email: formData.email,
           company: formData.company || '',
         }),
-      }).catch((error) => {
-        // Silently fail - user doesn't need to know
-        console.warn('HubSpot submission failed:', error);
+      }).catch(() => {
+        // Silently fail
       });
     };
 
-    // Generate and download PDF (formData and recaptchaToken are optional)
     const generatePDF = async (formData = null, recaptchaToken = null) => {
       try {
         // Trigger recalculation to ensure data is up-to-date
@@ -1256,24 +1253,20 @@
           }
         }
         
-        // Collect calculator data
         const calculatorData = collectCalculatorData();
         if (!calculatorData) {
           throw new Error('Calculator data not available. Please fill in the calculator and try again.');
         }
 
-        // Prepare payload for n8n (n8n webhook wraps POST body in $json.body)
-        // In n8n: $json.body.recaptchaToken will contain the token
+        // n8n webhook wraps POST body in $json.body, so $json.body.recaptchaToken will contain the token
         const payload = {
           ...calculatorData,
         };
         
-        // Add reCAPTCHA token if available
         if (recaptchaToken) {
           payload.recaptchaToken = recaptchaToken;
         }
 
-        // Show loading state
         const popup = document.getElementById('calc-download-popup');
         const submitBtn = document.getElementById('calc-form-submit-btn');
         const originalBtnText = submitBtn ? submitBtn.textContent : '';
@@ -1282,8 +1275,6 @@
           submitBtn.disabled = true;
           submitBtn.textContent = 'Generating PDF...';
         }
-
-        // Send to n8n for PDF generation
         const response = await fetch(PDF_WEBHOOK_URL, {
           method: 'POST',
           headers: {
@@ -1305,14 +1296,12 @@
           throw new Error(errorMessage);
         }
 
-        // Get PDF blob
         const blob = await response.blob();
         
         if (blob.size === 0) {
           throw new Error('Received empty PDF file from server');
         }
         
-        // Create download link
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1322,7 +1311,6 @@
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
 
-        // Show success message (optional - only if popup exists)
         if (popup) {
           const messageEl = popup.querySelector('.calc-download-message') || document.createElement('div');
           messageEl.className = 'calc-download-message';
@@ -1333,30 +1321,21 @@
           }
         }
 
-        // Reset form and re-enable buttons after short delay
         // Popup closing is handled by Webflow animations
         setTimeout(() => {
           if (popup) {
-            // Reset form
             const form = popup.querySelector('form');
             if (form) form.reset();
-            // Remove message
             const messageEl = popup.querySelector('.calc-download-message');
             if (messageEl) messageEl.remove();
           }
-          // Re-enable buttons
           if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = originalBtnText;
           }
-          if (downloadBtn) {
-            downloadBtn.disabled = false;
-            downloadBtn.textContent = downloadBtn.dataset.originalText || originalBtnText;
-          }
         }, 1500);
 
       } catch (error) {
-        // Show error message
         const popup = document.getElementById('calc-download-popup');
         const submitBtn = document.getElementById('calc-form-submit-btn');
         const originalBtnText = submitBtn ? submitBtn.textContent : '';
@@ -1384,7 +1363,6 @@
           alert(errorMessage);
         }
 
-        // Re-enable button
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = originalBtnText;
