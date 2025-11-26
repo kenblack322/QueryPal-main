@@ -1105,6 +1105,64 @@
     const PDF_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook/7ad16972-c30c-46a5-9970-fdcbb0d4c916';
     const HUBSPOT_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook/694308a2-dbf3-466e-bb17-aeba183a1488';
 
+    // Show custom message under form (replaces alert)
+    const showFormMessage = (message, type = 'error') => {
+      const popup = document.getElementById('calc-download-popup');
+      if (!popup) {
+        // Fallback to alert if popup doesn't exist
+        alert(message);
+        return;
+      }
+
+      // Remove existing message if any
+      const existingMessage = popup.querySelector('.calc-form-message');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+
+      // Create message element
+      const messageEl = document.createElement('div');
+      messageEl.className = 'calc-form-message';
+      messageEl.textContent = message;
+      
+      // Style based on type
+      const isError = type === 'error';
+      messageEl.style.cssText = `
+        padding: 12px 16px;
+        background: ${isError ? '#f8d7da' : '#d4edda'};
+        color: ${isError ? '#721c24' : '#155724'};
+        border-radius: 8px;
+        margin-top: 16px;
+        font-size: 14px;
+        line-height: 1.4;
+        max-width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+      `;
+
+      // Find form and insert message after it
+      const form = popup.querySelector('form');
+      if (form) {
+        form.insertAdjacentElement('afterend', messageEl);
+      } else {
+        // If no form, append to popup
+        popup.appendChild(messageEl);
+      }
+
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        if (messageEl.parentNode) {
+          messageEl.style.transition = 'opacity 0.3s ease';
+          messageEl.style.opacity = '0';
+          setTimeout(() => {
+            if (messageEl.parentNode) {
+              messageEl.remove();
+            }
+          }, 300);
+        }
+      }, 5000);
+    };
+
     // Collect calculator data for PDF
     const collectCalculatorData = () => {
       if (!window.calcGetInputs || !window.calcGetResults) {
@@ -1331,12 +1389,22 @@
       
       const form = e?.target || document.getElementById('calc-download-popup')?.querySelector('form');
       let recaptchaVerified = false;
+      let recaptchaWidgetExists = false;
       
       if (form) {
+        // First, check if reCAPTCHA widget exists in form
+        const recaptchaWidget = form.querySelector('.g-recaptcha, [data-sitekey], iframe[src*="recaptcha"]');
+        if (recaptchaWidget) {
+          recaptchaWidgetExists = true;
+        }
+        
         // Method 1: Check for token in standard reCAPTCHA v2 field
         const recaptchaField = form.querySelector('textarea[name="g-recaptcha-response"], input[name="g-recaptcha-response"]');
-        if (recaptchaField && recaptchaField.value && recaptchaField.value.trim().length > 50) {
-          recaptchaVerified = true;
+        if (recaptchaField) {
+          const tokenValue = (recaptchaField.value || '').trim();
+          if (tokenValue.length > 50) {
+            recaptchaVerified = true;
+          }
         }
         
         // Method 2: Check all form fields for recaptcha token (including hidden fields)
@@ -1385,7 +1453,7 @@
         }
       }
 
-      // Strict check: if no token found, show error
+      // Strict check: if widget exists but no token found, or no widget at all, show error
       if (!recaptchaVerified) {
         showFormMessage('Please complete the reCAPTCHA verification', 'error');
         return;
