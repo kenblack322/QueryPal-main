@@ -1102,7 +1102,7 @@
    * PDF Download Functionality
    * --------------------------------------------------------------------- */
   (() => {
-    const PDF_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook-test/7ad16972-c30c-46a5-9970-fdcbb0d4c916';
+    const PDF_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook/7ad16972-c30c-46a5-9970-fdcbb0d4c916';
     const HUBSPOT_WEBHOOK_URL = 'https://duphakepak.beget.app/webhook/694308a2-dbf3-466e-bb17-aeba183a1488';
 
     // Collect calculator data for PDF
@@ -1167,7 +1167,7 @@
       });
     };
 
-    const generatePDF = async (formData = null, recaptchaToken = null) => {
+    const generatePDF = async (formData = null) => {
       try {
         // Trigger recalculation to ensure data is up-to-date
         if (typeof window.calcRecalculate === 'function') {
@@ -1188,14 +1188,10 @@
           throw new Error('Calculator data not available. Please fill in the calculator and try again.');
         }
 
-        // n8n webhook wraps POST body in $json.body, so $json.body.recaptchaToken will contain the token
+        // n8n webhook wraps POST body in $json.body
         const payload = {
           ...calculatorData,
         };
-        
-        if (recaptchaToken) {
-          payload.recaptchaToken = recaptchaToken;
-        }
 
         const popup = document.getElementById('calc-download-popup');
         const submitBtn = document.getElementById('calc-form-submit-btn');
@@ -1335,22 +1331,11 @@
         company,
       } : null;
 
-      // Get reCAPTCHA v2 token from Webflow form
-      // Webflow automatically adds token to hidden field 'g-recaptcha-response' after successful verification
-      let recaptchaToken = null;
-      const form = e?.target || document.getElementById('calc-download-popup')?.querySelector('form');
-      if (form) {
-        const recaptchaField = form.querySelector('textarea[name="g-recaptcha-response"]');
-        if (recaptchaField && recaptchaField.value) {
-          recaptchaToken = recaptchaField.value;
-        }
-      }
-
       if (formData) {
         sendToHubSpot(formData);
       }
 
-      generatePDF(formData, recaptchaToken);
+      generatePDF(formData);
     };
 
     const initPDFDownload = () => {
