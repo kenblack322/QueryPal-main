@@ -592,7 +592,10 @@
   })();
 
   /* ------------------------------------------------------------------------
-   * Deflection slider color change based on value proximity to 10 or 90
+   * Deflection slider color change:
+   * - 0-10%: maximum red
+   * - 10-90%: gradient (redder near 10% and 90%, less red in middle)
+   * - 90-100%: maximum red
    * --------------------------------------------------------------------- */
   (() => {
     // Convert hex color to RGB
@@ -621,23 +624,37 @@
       return `rgb(${r}, ${g}, ${b})`;
     };
 
-    // Calculate proximity factor to 10 or 90
+    // Calculate red color factor based on value position
+    // 0-10%: max red (factor = 1)
+    // 10-90%: gradient - redder near 10% and 90%, less red in middle
+    // 90-100%: max red (factor = 1)
     const getProximityFactor = (value) => {
-      const target1 = 10;
-      const target2 = 90;
-      const threshold = 40; // Distance at which color fully changes
+      // Clamp value between 0 and 100
+      value = Math.max(0, Math.min(100, value));
 
-      // Calculate distance to nearest target point
-      const dist1 = Math.abs(value - target1);
-      const dist2 = Math.abs(value - target2);
-      const minDist = Math.min(dist1, dist2);
+      // 0-10%: maximum red
+      if (value <= 10) {
+        return 1;
+      }
 
-      // If value is far from 10 and 90, return 0 (base color)
-      if (minDist >= threshold) return 0;
+      // 90-100%: maximum red
+      if (value >= 90) {
+        return 1;
+      }
 
-      // Smooth interpolation using ease-out function
-      const normalized = 1 - minDist / threshold;
-      return Math.pow(normalized, 1.5); // Adjust exponent for smoother/sharp transition
+      // 10-90%: gradient based on distance from 10 or 90
+      // Calculate distance to nearest edge (10 or 90)
+      const distTo10 = value - 10;
+      const distTo90 = 90 - value;
+      const minDist = Math.min(distTo10, distTo90);
+
+      // Maximum distance from edge is 40 (at 50%)
+      const maxDist = 40;
+      
+      // Factor: 1 at edges (10 or 90), 0 at middle (50)
+      // Use smooth curve for transition
+      const normalized = 1 - (minDist / maxDist);
+      return Math.pow(normalized, 1.2); // Smooth transition
     };
 
     const updateSliderColor = () => {
